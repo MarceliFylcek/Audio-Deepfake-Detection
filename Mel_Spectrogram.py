@@ -10,7 +10,7 @@ import sounddevice as sd
 print(torchaudio.get_audio_backend())
 
 class Mel_Spectrogram:
-    def __init__(self, audio_path, desired_sample_rate=16_000, n_mels=40, backend="torchaudio"):
+    def __init__(self, audio_path, new_sample_rate=16_000, n_mels=64):
         """
         :param n_mels: Number of mel filter banks
         """
@@ -19,92 +19,119 @@ class Mel_Spectrogram:
         self.waveform, self.sample_rate = torchaudio.load(audio_path)
 
         # Resample the waveform to the desired sample rate
-        if self.sample_rate != desired_sample_rate:
-            self.waveform = torchaudio.transforms.Resample(self.sample_rate, desired_sample_rate)(self.waveform)
-            self.sample_rate = desired_sample_rate
+        if self.sample_rate != new_sample_rate:
+            self.waveform = torchaudio.transforms.Resample(self.sample_rate, new_sample_rate)(self.waveform)
+            self.sample_rate = new_sample_rate
 
         # Convert the waveform to mono
-        waveform_mono = self.waveform.mean(dim=0, keepdim=True)
+        if self.waveform.shape[0] > 1:
+            waveform_mono = self.waveform.mean(dim=0, keepdim=True)
+        else:
+            waveform_mono = self.waveform
 
-        # Convert the mono waveform to a NumPy array
-        self.audio_array = waveform_mono.numpy()
-
-        #Define the number of mel filterbanks
-        n_mels = 128
-
-        #Set parameters
-        self.transform = transforms.MelSpectrogram(
+        # Create MelSpectogram transform
+        melspect_transform = transforms.MelSpectrogram(
             sample_rate=self.sample_rate,
-            n_mels=n_mels 
+            n_mels=n_mels,
+            n_fft=1024,
+            hop_length=512,
         )
 
-        melspectrogram = self.transform(waveform_mono)
+        # Get hop length
+        self.hop_length = melspect_transform.hop_length
 
-        # Convert the mel spectrogram tensor to a NumPy array
-        melspectrogram = melspectrogram.numpy()
+        # Create the mel spectogram
+        melspectrogram = melspect_transform(waveform_mono)
 
         #Drop first dim
-        self.melspectrogram = np.squeeze(melspectrogram)
+        self.melspectrogram = torch.squeeze(melspectrogram)
 
-    def play(self):
-        current_frame = [0]
+    def _update_plot_marker(self, ax, current_frame):
+            """ Moves red marker on the plot
+            """            
 
-        # Animated plot
-        def update_plot():
-            current_time = current_frame[0] / self.sample_rate
+            # Current time stamp
+            current_time = current_frame / self.sample_rate
             print(f"{current_time}s")
-            marker_position = int(current_frame[0] / self.transform.hop_length)
+
+            # Current marker postion
+            marker_position = int(current_frame / self.hop_length)
             
             # Clear the previous marker
             if hasattr(self, 'red_marker_line'):
                 self.red_marker_line.remove()
             
-            # Add a marker to indicate the current position on the mel spectrogram
-            self.red_marker_line = plt.axvline(x=marker_position, color='red')
+            # Add marker to current position
+            self.red_marker_line = ax.axvline(x=marker_position, color='red')
             
             # Update the plot
             plt.draw()
 
+    def _outputstream_callback(self, outdata, frames, time, status):
+        """ 
+        """            
+        if status.output_underflow:
+            print('Output underflow!')
+        self.current_frame += frames
 
-        # Initialize the plot
-        fig = plt.figure(figsize=(10, 6))
-        plt.imshow(self.melspectrogram, aspect='auto', origin='lower', vmax=120)
-        plt.xlabel('Frames')
-        plt.ylabel('Mel Bins')
-        plt.title('Mel Spectrogram')
-        plt.colorbar(format='%+2.0f dB')
+    def _on_window_close(self, event):
+        self.close = True
 
-        stop = [False]
-        def onclose(event):
-            stop[0] = True
+    def play(self):
 
-        fig.canvas.mpl_connect('close_event', onclose)
+        # Frame counter
+        self.current_frame = 0
+
+        # For for closing the window
+        self.close = False
+
+        fig, ax = self._create_plot()
+
+        # Detect window closing
+        fig.canvas.mpl_connect('close_event', self._on_window_close)
 
         # Audio settings
         num_channels = 1
         blocksize = 2048
 
-        def callback(outdata, frames, time, status):
-            if status.output_underflow:
-                print('Output underflow!')
-            current_frame[0] += frames
-            
-        # Play audio with spectrogram visualization
-        with sd.OutputStream(callback=callback, channels=num_channels,
+        # Play audio
+        with sd.OutputStream(callback=self._outputstream_callback, channels=num_channels,
                             blocksize=blocksize, samplerate=self.sample_rate):
             sd.play(self.waveform.T, self.sample_rate)
             while sd.get_stream().active:
                 plt.pause(0.01)
-                update_plot()
-                if stop[0]:
+                self._update_plot_marker(ax, self.current_frame)
+                if self.close:
                    sd.stop()
                    plt.close()
 
+    def _create_plot(self):
+        """ Creates a Melspectrogram plot
+        """
+        
+        # Create figure and ax with a specified size
+        fig, ax = plt.subplots(figsize=(10, 6))
+
+        # Plot spectogram
+        mel_plot = ax.imshow(self.melspectrogram, aspect='auto', origin='lower')
+        
+        # Set label names and title
+        ax.set_xlabel('Frames')
+        ax.set_ylabel('Mel Bins')
+        ax.set_title('Mel Spectrogram')
+
+        # Set fig type as colorbar
+        fig.colorbar(mel_plot, format='%+2.0f')
+
+        return fig, ax
+
+
     def display(self):
-        fig = plt.figure(figsize=(10, 6))
-        plt.imshow(self.melspectrogram, aspect='auto', origin='lower', vmax=120)
-        plt.xlabel('Frames')
-        plt.ylabel('Mel Bins')
-        plt.title('Mel Spectrogram')
-        plt.colorbar(format='%+2.0f dB')
+        """ Creates and displays Melspectogram plot
+        """        
+
+        # Create the plot
+        self._create_plot()
+
+        # Display
         plt.show()
