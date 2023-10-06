@@ -4,13 +4,13 @@ import torchaudio.transforms as transforms
 import soundfile
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.animation
 import sounddevice as sd
 
 print(torchaudio.get_audio_backend())
 
 class Mel_Spectrogram:
-    def __init__(self, audio_path, new_sample_rate=16_000, n_mels=64):
+    def __init__(self, audio_path, new_sample_rate=16_000, n_mels=64,
+                 time_milliseconds=None):
         """
         :param n_mels: Number of mel filter banks
         """
@@ -25,9 +25,18 @@ class Mel_Spectrogram:
 
         # Convert the waveform to mono
         if self.waveform.shape[0] > 1:
-            waveform_mono = self.waveform.mean(dim=0, keepdim=True)
-        else:
-            waveform_mono = self.waveform
+            self.waveform = self.waveform.mean(dim=0, keepdim=True)
+
+        # Cut down length
+        if time_milliseconds != None:
+            n_samples = int(self.sample_rate * time_milliseconds / 1000.0)
+            signal_length = self.waveform.shape[1]
+            if signal_length > n_samples:
+                self.waveform = self.waveform[:, :n_samples-1]
+            elif signal_length < n_samples:
+                n_missing_samples = n_samples - signal_length
+                padding = (0, n_missing_samples)
+                self.waveform = torch.nn.functional.pad(self.waveform, padding)
 
         # Create MelSpectogram transform
         melspect_transform = transforms.MelSpectrogram(
@@ -41,10 +50,10 @@ class Mel_Spectrogram:
         self.hop_length = melspect_transform.hop_length
 
         # Create the mel spectogram
-        melspectrogram = melspect_transform(waveform_mono)
+        self.melspectrogram = torch.squeeze(melspect_transform(self.waveform))
 
-        #Drop first dim
-        self.melspectrogram = torch.squeeze(melspectrogram)
+    def get_raw_data(self):
+        return self.melspectrogram
 
     def _update_plot_marker(self, ax, current_frame):
             """ Moves red marker on the plot
@@ -113,7 +122,7 @@ class Mel_Spectrogram:
         fig, ax = plt.subplots(figsize=(10, 6))
 
         # Plot spectogram
-        mel_plot = ax.imshow(self.melspectrogram, aspect='auto', origin='lower')
+        mel_plot = ax.imshow(self.melspectrogram, aspect='auto', origin='lower', cmap='magma')
         
         # Set label names and title
         ax.set_xlabel('Frames')
@@ -121,7 +130,7 @@ class Mel_Spectrogram:
         ax.set_title('Mel Spectrogram')
 
         # Set fig type as colorbar
-        fig.colorbar(mel_plot, format='%+2.0f')
+        fig.colorbar(mel_plot, format='%+2.0f', cmap='magma')
 
         return fig, ax
 
