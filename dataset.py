@@ -2,7 +2,7 @@ from typing import Tuple
 import torch
 from torch.utils.data import Dataset
 import os
-from Mel_Spectrogram import Mel_Spectrogram
+from mel_spectrogram import Mel_Spectrogram
 
 class FakeAudioDataset(Dataset):
     def __init__(self, real_folder: str, fake_folder: str,
