@@ -48,6 +48,9 @@ class FakeAudioDataset(Dataset):
 
         raw_data = spectogram.get_raw_data()
 
+        # Add 1 for channels
+        raw_data = raw_data.unsqueeze(dim=0)
+
         return raw_data, label
 
 

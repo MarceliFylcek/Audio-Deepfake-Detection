@@ -6,7 +6,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sounddevice as sd
 
-print(torchaudio.get_audio_backend())
 
 class Mel_Spectrogram:
     def __init__(self, audio_path, new_sample_rate=16_000, n_mels=64,
@@ -32,7 +31,7 @@ class Mel_Spectrogram:
             n_samples = int(self.sample_rate * time_milliseconds / 1000.0)
             signal_length = self.waveform.shape[1]
             if signal_length > n_samples:
-                self.waveform = self.waveform[:, :n_samples-1]
+                self.waveform = self.waveform[:, :n_samples]
             elif signal_length < n_samples:
                 n_missing_samples = n_samples - signal_length
                 padding = (0, n_missing_samples)
