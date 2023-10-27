@@ -1,10 +1,16 @@
+from abc import ABC
+
 import torch.nn as nn
 import torch
+from torch import Tensor
+from transformers import Dinov2PreTrainedModel, Dinov2Model
+
 
 def calc_shape(in_shape, padding, dilation, k_size, stride):
     h = (in_shape[0] + 2*padding - dilation * (k_size-1) - 1) / stride + 1
     w = (in_shape[1] + 2*padding - dilation * (k_size-1) - 1) / stride + 1
     return (int(h), int(w))
+
 
 class CNNModel(nn.Module):
     def __init__(self, n_filters, input_shape):
@@ -73,3 +79,33 @@ class CNN_LSTM_Model(nn.Module):
          x = self.softmax(x)
 
          return x
+
+
+class DenseClassifier(nn.Module):
+    def __init__(self):
+        super(DenseClassifier, self).__init__()
+        self.Dense_A = nn.Linear(28 * 768, 14 * 768)
+        self.Dense_B = nn.Linear(14 * 768, 7 * 768)
+        self.Output_Dense = nn.Linear(7 * 768, 2)
+        self.relu = nn.ReLU()
+
+    def forward(self, patch_embeddings: Tensor):
+        x = self.relu(self.Dense_A(patch_embeddings.reshape(patch_embeddings.shape[0], -1)))
+        x = self.relu(self.Dense_B(x))
+        x = self.Output_Dense(x)
+        return x
+
+
+class DinoV2TransformerBasedModel(Dinov2PreTrainedModel, ABC):
+
+    def __init__(self, dinoV2_config):
+        super().__init__(dinoV2_config)
+        self.dinoV2 = Dinov2Model(dinoV2_config)
+        self.classifier = DenseClassifier()
+
+    def forward(self, spectrograms: Tensor):
+        outputs = self.dinoV2(spectrograms, output_attentions=False)
+        patch_embeddings = outputs.last_hidden_state[:, 1:, :]
+
+        logits = self.classifier(patch_embeddings)
+        return logits

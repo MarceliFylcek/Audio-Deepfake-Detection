@@ -1,8 +1,11 @@
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, CosineAnnealingLR
+from transformers import Dinov2Config
+
 from mel_spectrogram import Mel_Spectrogram
 import torch
 import os
 import wandb
-from models import CNNModel
+from models import CNNModel, DinoV2TransformerBasedModel
 import torch.optim as optim
 from sklearn.metrics import classification_report
 from dataset import FakeAudioDataset
@@ -66,7 +69,9 @@ if __name__ == "__main__":
     # Batch is passed to the model
 
     # Create the model
-    m = CNNModel(n_filters=25, input_shape=[batch.shape[2], batch.shape[3]]).to(device)
+    # m = CNNModel(n_filters=25, input_shape=[batch.shape[2], batch.shape[3]]).to(device)
+    config = Dinov2Config(num_channels=1)
+    m = DinoV2TransformerBasedModel(config).to(device)
 
     # Pretrained model loading
     if pretrained_name is not None:
@@ -83,6 +88,9 @@ if __name__ == "__main__":
 
     # Optimizer
     optimizer = optim.Adam(m.parameters(), lr=lr)
+
+    # Runtime learning rate modifier
+    lr_scheduler = CosineAnnealingLR(optimizer, T_max=int(1.3 * n_epochs), eta_min=0.000001)
 
     # Main progress bar
     main_progress_bar = tqdm(range(n_epochs), desc="Training progress", position=0)
@@ -101,8 +109,11 @@ if __name__ == "__main__":
             train_dataloader, f"Epoch {epoch} (Train)", leave=False
         )
 
+        # Set step counter for learning rate scheduler
+        step_counter = 0
         # Training loop, for every batch
         for batch_idx, (batch, labels) in enumerate(train_epoch_progress):
+            step_counter += 1
             # zero the gradient buffers
             optimizer.zero_grad()
 
@@ -122,12 +133,16 @@ if __name__ == "__main__":
             # Update the weights
             optimizer.step()
 
+            # Update learning rate
+            lr_scheduler.step(epoch + int(step_counter / 192))
+
             # Update running loss
             loss_train += loss.item() / batch_size
 
             # Update description of the sub-progress bar
             train_epoch_progress.set_postfix(
-                Loss=f"{loss_train / (batch_idx + 1):.4f}"
+                Loss=f"{loss_train / (batch_idx + 1):.4f}",
+                lr=optimizer.param_groups[0]['lr']
             )
 
         train_epoch_progress.close()
