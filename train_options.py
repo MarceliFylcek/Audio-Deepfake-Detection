@@ -1,5 +1,6 @@
 import argparse
 
+
 def parse():
     parser = argparse.ArgumentParser(description="Set training options.")
     parser.add_argument("--name", default="model", type=str, help="Name for the new model")
@@ -10,6 +11,7 @@ def parse():
     parser.add_argument("--load_pretrained", default=None, type=str, help="Name of a pretrained model")
     parser.add_argument("--no", default=None, type=str, help="Name of a pretrained model")
     parser.add_argument("--no_valid", action="store_true", help="No validation set")
+    parser.add_argument("--disable_wandb", default=False, action="store_true", help="Whether to disable wandb or not")
 
     args = parser.parse_args()
     return args

@@ -4,9 +4,10 @@ from torch.utils.data import Dataset
 import os
 from mel_spectrogram import Mel_Spectrogram
 
+
 class FakeAudioDataset(Dataset):
     def __init__(self, real_folder: str, fake_folder: str,
-                time_milliseconds: int, sampling_rate, n_mels):
+                 time_milliseconds: int, sampling_rate, n_mels):
         """Spoof audio dataset
 
         Args:
@@ -23,23 +24,20 @@ class FakeAudioDataset(Dataset):
 
         # Path and label
         real_paths = [[os.path.join(self.real_folder,
-                    filename)] for filename in os.listdir(self.real_folder)]
-        
+                                    filename)] for filename in os.listdir(self.real_folder)]
 
         fake_paths = [[os.path.join(self.fake_folder,
-                    filename)] for filename in os.listdir(self.fake_folder)]
-        
+                                    filename)] for filename in os.listdir(self.fake_folder)]
+
         self.filepaths = real_paths + fake_paths
 
         # 1 for real audio, 0 for fake audio
         self.labels = [1 for _ in real_paths] + [0 for _ in fake_paths]
 
-
     def __len__(self):
         return len(self.filepaths)
-    
+
     def __getitem__(self, index) -> Tuple[torch.Tensor, int]:
-        
         path = self.filepaths[index][0]
         label = self.labels[index]
 
@@ -52,6 +50,3 @@ class FakeAudioDataset(Dataset):
         raw_data = raw_data.unsqueeze(dim=0)
 
         return raw_data, label
-
-
-

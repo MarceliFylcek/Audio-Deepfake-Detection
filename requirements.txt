@@ -6,3 +6,5 @@ numpy
 matplotlib
 wandb
 tqdm
+scikit-learn
+git+https://github.com/huggingface/transformers

@@ -27,7 +27,7 @@ class Mel_Spectrogram:
             self.waveform = self.waveform.mean(dim=0, keepdim=True)
 
         # Cut down length
-        if time_milliseconds != None:
+        if time_milliseconds is not None:
             n_samples = int(self.sample_rate * time_milliseconds / 1000.0)
             signal_length = self.waveform.shape[1]
             if signal_length > n_samples:
