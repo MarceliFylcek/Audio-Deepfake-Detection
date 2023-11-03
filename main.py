@@ -70,7 +70,7 @@ if __name__ == "__main__":
 
     # Create the model
     # m = CNNModel(n_filters=25, input_shape=[batch.shape[2], batch.shape[3]]).to(device)
-    config = Dinov2Config(num_channels=1)
+    config = Dinov2Config(num_channels=1, patch_size=4, hidden_size=48)
     m = DinoV2TransformerBasedModel(config).to(device)
 
     # Pretrained model loading
