@@ -6,8 +6,15 @@ from mel_spectrogram import Mel_Spectrogram
 
 
 class FakeAudioDataset(Dataset):
-    def __init__(self, real_folder: str, fake_folder: str,
-                 time_milliseconds: int, sampling_rate, n_mels):
+    def __init__(
+        self,
+        real_folder: str,
+        fake_folder: str,
+        time_milliseconds: int,
+        new_sample_rate,
+        n_mels,
+        db_amplitude,
+    ):
         """Spoof audio dataset
 
         Args:
@@ -19,15 +26,20 @@ class FakeAudioDataset(Dataset):
         self.real_folder = real_folder
         self.fake_folder = fake_folder
         self.time_milliseconds = time_milliseconds
-        self.sampling_rate = sampling_rate
+        self.sampling_rate = new_sample_rate
         self.n_mels = n_mels
+        self.db_amplitude = db_amplitude
 
         # Path and label
-        real_paths = [[os.path.join(self.real_folder,
-                                    filename)] for filename in os.listdir(self.real_folder)]
+        real_paths = [
+            [os.path.join(self.real_folder, filename)]
+            for filename in os.listdir(self.real_folder)
+        ]
 
-        fake_paths = [[os.path.join(self.fake_folder,
-                                    filename)] for filename in os.listdir(self.fake_folder)]
+        fake_paths = [
+            [os.path.join(self.fake_folder, filename)]
+            for filename in os.listdir(self.fake_folder)
+        ]
 
         self.filepaths = real_paths + fake_paths
 
@@ -41,8 +53,13 @@ class FakeAudioDataset(Dataset):
         path = self.filepaths[index][0]
         label = self.labels[index]
 
-        spectogram = Mel_Spectrogram(path, self.sampling_rate,
-                                     self.n_mels, self.time_milliseconds)
+        spectogram = Mel_Spectrogram(
+            path,
+            self.sampling_rate,
+            self.n_mels,
+            self.time_milliseconds,
+            self.db_amplitude,
+        )
 
         raw_data = spectogram.get_raw_data()
 

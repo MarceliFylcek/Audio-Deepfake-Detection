@@ -4,3 +4,11 @@ MODELS_DIR = "models"
 TRAIN_DIR = "resources/train"
  # Validation dataset 
 VALID_DIR = "resources/valid"
+
+# Set Mel Spectrogram parameters
+melspectogram_params = {
+    'new_sample_rate': 16_000, 
+    'n_mels': 128,
+    'time_milliseconds': 4_000, 
+    'db_amplitude': True
+}
