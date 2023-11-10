@@ -8,7 +8,7 @@ from mel_spectrogram import Mel_Spectrogram
 import torch
 import os
 import wandb
-from models import CNNModel, DinoV2TransformerBasedModel
+from models import CNNModel, DinoV2TransformerBasedModel, CNN_LSTM_Model
 import torch.optim as optim
 from sklearn.metrics import classification_report
 from config import MODELS_DIR, TRAIN_DIR, VALID_DIR, melspectogram_params
@@ -82,7 +82,8 @@ if __name__ == "__main__":
     # Batch is passed to the model
 
     # Create the model
-    m = CNNModel(n_filters=25, input_shape=[batch.shape[2], batch.shape[3]]).to(device)
+    # m = CNNModel(n_filters=25, input_shape=[batch.shape[2], batch.shape[3]]).to(device)
+    m = CNN_LSTM_Model(n_filters=25, input_shape=[batch.shape[2], batch.shape[3]], hidden_size=1024, num_layers=batch.shape[3])
     config = Dinov2Config(num_channels=1)
     # m = DinoV2TransformerBasedModel(config).to(device)
 
@@ -137,6 +138,10 @@ if __name__ == "__main__":
             # Data to device
             batch = batch.to(device)
             labels = labels.to(device)
+
+            #! Batch normalization (no learnable params)
+            batch_m, batch_s = batch.mean(), batch.std()
+            batch = (batch - batch_m) / batch_s
 
             # Get the output
             output = m(batch)
