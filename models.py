@@ -88,7 +88,7 @@ class CNN_LSTM_Model(nn.Module):
         self.lstm1 = nn.LSTM(
             input_size= n_filters * self.maxp_out[0],
             hidden_size=hidden_size,
-            num_layers=num_layers,
+            num_layers=self.maxp_out[1],
         )
         self.fc1 = nn.Linear(self.maxp_out[1]* hidden_size, 256)
         self.fc2 = nn.Linear(256, 2)
@@ -98,8 +98,6 @@ class CNN_LSTM_Model(nn.Module):
         x = self.conv1(x)
         x = self.relu(x)
         x = self.maxpool(x)
-
-        print("Shape of x before reshape:", x.shape)
 
         # Reshape for LSTM -> [batch, sequence_len, data]
         x = x.view(x.size(0), x.size(3), -1)
