@@ -116,11 +116,11 @@ class CNN_LSTM_Model(nn.Module):
 
 
 class DenseClassifier(nn.Module):
-    def __init__(self, hidden_features):
+    def __init__(self, hidden_size: int, input_size: int):
         super(DenseClassifier, self).__init__()
-        self.Dense_A = nn.Linear(496 * hidden_features, 256 * hidden_features)
-        self.Dense_B = nn.Linear(256 * hidden_features, 128 * hidden_features)
-        self.Output_Dense = nn.Linear(128 * hidden_features, 2)
+        self.Dense_A = nn.Linear(input_size * hidden_size, input_size * hidden_size // 8)
+        self.Dense_B = nn.Linear(input_size * hidden_size // 8, input_size * hidden_size // 24)
+        self.Output_Dense = nn.Linear(input_size * hidden_size // 24, 2)
         self.relu = nn.ReLU()
 
         # self.Dense_A = nn.Linear(496 * hidden_features, 256 * hidden_features)
@@ -136,19 +136,27 @@ class DenseClassifier(nn.Module):
 
 
 class DinoV2TransformerBasedModel(Dinov2PreTrainedModel, ABC):
-    def __init__(self, dinoV2_config):
+    def __init__(self, dinoV2_config, input_shape: Tuple[int, int]):
         super().__init__(dinoV2_config)
         self.dinoV2 = Dinov2Model(dinoV2_config)
         self.patch_size = dinoV2_config.patch_size
         self.hidden_size = dinoV2_config.hidden_size
-        self.classifier = DenseClassifier(self.hidden_size)
+
+        self.input_shape = input_shape
+        self.n_output_features = self.get_n_output_features(input_shape)
+        self.patches_shape = self.get_patches_shape(input_shape)
+
+        self.classifier = DenseClassifier(self.hidden_size, self.n_output_features)
 
     def get_patches_shape(self, input_shape: Tuple[int, int]):
         return input_shape[0] // self.patch_size, input_shape[1] // self.patch_size
 
+    def get_n_output_features(self, input_shape: Tuple[int, int]):
+        return (input_shape[0] // self.patch_size) * (input_shape[1] // self.patch_size)
+
     def forward(self, spectrograms: Tensor):
-        outputs = self.dinoV2(spectrograms, output_attentions=True)
+        outputs = self.dinoV2(spectrograms, output_attentions=False)
         patch_embeddings = outputs.last_hidden_state[:, 1:, :]
 
         logits = self.classifier(patch_embeddings)
-        return logits, outputs.attentions
+        return logits
