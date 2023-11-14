@@ -122,9 +122,10 @@ class DenseClassifier(nn.Module):
         self.Output_Dense = nn.Linear(128 * hidden_features, 2)
         self.relu = nn.ReLU()
 
-        # self.Dense_A = nn.Linear(28 * 768, 14 * 768)
-        # self.Dense_B = nn.Linear(14 * 768, 7 * 768)
-        # self.Output_Dense = nn.Linear(7 * 768, 2)
+        # self.Dense_A = nn.Linear(496 * hidden_features, 256 * hidden_features)
+        # self.Dense_B = nn.Linear(256 * hidden_features, 128 * hidden_features)
+        # self.Output_Dense = nn.Linear(128 * hidden_features, 2)
+        # self.relu = nn.ReLU()
 
     def forward(self, patch_embeddings: Tensor):
         x = self.relu(self.Dense_A(patch_embeddings.reshape(patch_embeddings.shape[0], -1)))
@@ -149,4 +150,4 @@ class DinoV2TransformerBasedModel(Dinov2PreTrainedModel, ABC):
         patch_embeddings = outputs.last_hidden_state[:, 1:, :]
 
         logits = self.classifier(patch_embeddings)
-        return logits
+        return logits, outputs.attentions

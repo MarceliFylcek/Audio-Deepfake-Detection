@@ -41,7 +41,7 @@ def save_mosaic(data_list, rows, one_img_size, break_thickness, out_dir, spectro
         del data_list[-1]
 
 
-def get_attention_map(attentions, patches_shape):
+def get_attention_map(attentions, patches_shape, patch_size):
     nh = attentions.shape[1]  # number of head
 
     # keep only the output patch attention
@@ -49,12 +49,12 @@ def get_attention_map(attentions, patches_shape):
 
     attentions = attentions.reshape(nh, *patches_shape)
     attentions = torch.nn.functional.interpolate(attentions.unsqueeze(0),
-                                                 scale_factor=14, mode="nearest")[0].detach().cpu().numpy()
+                                                 scale_factor=patch_size, mode="bilinear")[0].detach().cpu().numpy()
 
     return attentions
 
 
-def visualize_all_attentions(attentions, patches_shape, out_root, spectrogram=None, imshow=False):
+def visualize_all_attentions(attentions, patches_shape, patch_size, out_root, spectrogram=None, imshow=False):
     cmap = plt.get_cmap("magma")
     if spectrogram is not None:
         normalized_spectrogram = Normalize(vmin=spectrogram.min(), vmax=spectrogram.max())(spectrogram)
@@ -62,16 +62,19 @@ def visualize_all_attentions(attentions, patches_shape, out_root, spectrogram=No
 
     attention_prob_sums = []
     for i, attention in enumerate(attentions):
-        attention_map = get_attention_map(attention, patches_shape)
+        attention_map = get_attention_map(attention, patches_shape, patch_size)
+        not_norm_attention_probs = []
         attention_probs = []
         for att_map in attention_map:
+            not_norm_attention_probs.append(np.copy(att_map))
             att_map = Normalize(vmin=att_map.min(), vmax=att_map.max())(att_map)
             att_map = cv2.cvtColor(cmap(att_map)[::-1, :, :3].astype(np.float32), cv2.COLOR_RGB2BGR)
             attention_probs.append(att_map)
-        save_mosaic(attention_probs, 3, (220, 220), 2, os.path.join(out_root, f"attention_probs_{i}.png"),
-                    spectrogram, imshow=imshow)
-        att_prob_sum = sum(attention_probs)
-        att_prob_sum = (att_prob_sum - att_prob_sum.min(initial=10)) / (att_prob_sum.max(initial=-10) - att_prob_sum.min(initial=10))
+        # save_mosaic(attention_probs, 3, (220, 220), 2, os.path.join(out_root, f"attention_probs_{i}.png"),
+        #             spectrogram, imshow=imshow)
+        att_prob_sum = sum(not_norm_attention_probs)
+        att_prob_sum = Normalize(vmin=att_prob_sum.min(), vmax=att_prob_sum.max())(att_prob_sum)
+        att_prob_sum = cv2.cvtColor(cmap(att_prob_sum)[::-1, :, :3].astype(np.float32), cv2.COLOR_RGB2BGR)
         attention_prob_sums.append(att_prob_sum)
     save_mosaic(attention_prob_sums, 3, (220, 220), 2, os.path.join(out_root, f"attention_prob_sums.png"),
                 spectrogram, imshow=imshow)
@@ -85,13 +88,14 @@ def test_voice(model: Module, path_to_voice_file: str, time_milliseconds: int, s
     model.to(device)
 
     spectrogram = Mel_Spectrogram(path_to_voice_file, sampling_rate, n_mels, time_milliseconds)
+    # spectrogram.play()
     spectrogram_data = spectrogram.get_raw_data().unsqueeze(0).unsqueeze(0).to(device)
 
     class_values, attentions = model(spectrogram_data)
     print(f"Audio is {'real' if torch.argmax(class_values) == 1 else 'deepfake'}")
 
     visualize_all_attentions([att.detach().cpu() for att in attentions],
-                             model.get_patches_shape(spectrogram_data.shape[-2:]), "", imshow=True,
+                             model.get_patches_shape(spectrogram_data.shape[-2:]), model.patch_size, "", imshow=True,
                              spectrogram=spectrogram_data[0, 0].detach().cpu().numpy())
 
 
@@ -99,4 +103,4 @@ if __name__ == "__main__":
     print("Loading model...")
     m = DinoV2TransformerBasedModel(Dinov2Config(num_channels=1, patch_size=4, hidden_size=48))
     m.load_state_dict(torch.load(r"C:\Code\Audio-Deepfake-Detection\models\elevenlabs_patch4_e20.pth"))
-    test_voice(m, r"C:\Code\Audio-Deepfake-Detection\resources\valid\fake\11549-0002.flac", 4_000, 16_000, 64)
+    test_voice(m, r"C:\Code\Audio-Deepfake-Detection\elevenlabs\valid\fake\61943-0003.flac", 4_000, 16_000, 64)
