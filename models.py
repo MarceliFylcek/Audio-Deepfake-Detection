@@ -1,4 +1,5 @@
 from abc import ABC
+from typing import Tuple
 
 import torch.nn as nn
 import torch
