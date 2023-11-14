@@ -3,6 +3,7 @@ from dataset import FakeAudioDataset
 from torch.utils.data import DataLoader
 import traceback
 
+
 def get_dataloader(dataset_path, batch_size, melspect_params, shuffle=True,):
     real_folder = os.path.join(dataset_path, "real")
     fake_folder = os.path.join(dataset_path, "fake")
@@ -12,3 +13,9 @@ def get_dataloader(dataset_path, batch_size, melspect_params, shuffle=True,):
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=0)
 
     return dataloader
+
+
+def normalize_batch(batch):
+    batch_m, batch_s = batch.mean(), batch.std()
+    batch = (batch - batch_m) / batch_s
+    return batch

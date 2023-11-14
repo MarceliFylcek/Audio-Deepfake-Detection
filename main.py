@@ -12,7 +12,7 @@ from dataset import FakeAudioDataset
 from config import MODELS_DIR, TRAIN_DIR, VALID_DIR, melspectogram_params
 from tqdm import tqdm
 import train_options
-from utils import get_dataloader
+from utils import get_dataloader, normalize_batch
 
 """
 Folder structure:
@@ -40,6 +40,7 @@ if __name__ == "__main__":
     model_name = args.name
     no_valid = args.no_valid
     wandb_disabled = args.disable_wandb
+    normalization = args.normalization
 
     if not os.path.exists(MODELS_DIR):
         os.makedirs(MODELS_DIR)
@@ -127,8 +128,8 @@ if __name__ == "__main__":
             labels = labels.to(device)
 
             #! Batch normalization (no learnable params)
-            batch_m, batch_s = batch.mean(), batch.std()
-            batch = (batch - batch_m) / batch_s
+            if normalization:
+                batch = normalize_batch(batch)
 
             # Get the output
             output = m(batch)
@@ -182,6 +183,8 @@ if __name__ == "__main__":
                 ):
                     batch = batch.to(device)
                     labels = labels.to(device)
+                    if normalization:
+                        batch = normalize_batch(batch)
                     output = m(batch)
                     loss = criterion(output, labels)
                     loss_valid += loss.item() / batch_size
