@@ -90,10 +90,14 @@ if __name__ == "__main__":
     optimizer = optim.Adam(m.parameters(), lr=lr)
 
     # Runtime learning rate modifier
-    lr_scheduler = CosineAnnealingLR(optimizer, T_max=int(1.3 * n_epochs), eta_min=0.000001)
+    lr_scheduler = CosineAnnealingLR(
+        optimizer, T_max=int(1.3 * n_epochs), eta_min=0.000001
+    )
 
     # Main progress bar
-    main_progress_bar = tqdm(range(n_epochs), desc="Training progress", position=0)
+    main_progress_bar = tqdm(
+        range(n_epochs), desc="Training progress", position=0
+    )
 
     # For epoch
     for epoch in main_progress_bar:
@@ -121,6 +125,10 @@ if __name__ == "__main__":
             batch = batch.to(device)
             labels = labels.to(device)
 
+            #! Batch normalization (no learnable params)
+            batch_m, batch_s = batch.mean(), batch.std()
+            batch = (batch - batch_m) / batch_s
+
             # Get the output
             output = m(batch)
 
@@ -142,7 +150,7 @@ if __name__ == "__main__":
             # Update description of the sub-progress bar
             train_epoch_progress.set_postfix(
                 Loss=f"{loss_train / (batch_idx + 1):.4f}",
-                lr=optimizer.param_groups[0]['lr']
+                lr=optimizer.param_groups[0]["lr"],
             )
 
         train_epoch_progress.close()
@@ -168,7 +176,9 @@ if __name__ == "__main__":
             # No gradient calculation
             with torch.no_grad():
                 # Evaluation loop
-                for batch_idx, (batch, labels) in enumerate(valid_epoch_progress):
+                for batch_idx, (batch, labels) in enumerate(
+                    valid_epoch_progress
+                ):
                     batch = batch.to(device)
                     labels = labels.to(device)
                     output = m(batch)
@@ -187,7 +197,7 @@ if __name__ == "__main__":
 
             loss_valid /= len(valid_dataloader)
             accuracy = 100 * correct_prediction / total
-            print(f"Accuracy: {accuracy}%")
+            print(f"\nAccuracy: {accuracy}%")
 
             # Zero division error
             report = classification_report(
@@ -198,7 +208,11 @@ if __name__ == "__main__":
                 for class_name in list(report.keys())[:-3]:
                     for metric in list(report[class_name].keys())[:-1]:
                         wandb.log(
-                            {f"{class_name}_{metric}": report[class_name][metric]}
+                            {
+                                f"{class_name}_{metric}": report[class_name][
+                                    metric
+                                ]
+                            }
                         )
                         # print(f'{class_name}_{metric}: {report[class_name][metric]}')
 
@@ -214,8 +228,8 @@ if __name__ == "__main__":
         if epoch % checkpoint_freq == 0:
             try:
                 path = (
-                        os.path.join(MODELS_DIR, model_name + "_e" + str(epoch))
-                        + ".pth"
+                    os.path.join(MODELS_DIR, model_name + "_e" + str(epoch))
+                    + ".pth"
                 )
                 torch.save(m.state_dict(), path)
             except Exception as e:
