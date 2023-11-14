@@ -9,7 +9,7 @@ from models import CNNModel, DinoV2TransformerBasedModel
 import torch.optim as optim
 from sklearn.metrics import classification_report
 from dataset import FakeAudioDataset
-from config import MODELS_DIR, TRAIN_DIR, VALID_DIR
+from config import MODELS_DIR, TRAIN_DIR, VALID_DIR, melspectogram_params
 from tqdm import tqdm
 import train_options
 from utils import get_dataloader
@@ -61,8 +61,8 @@ if __name__ == "__main__":
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     # Get training and validation dataloader
-    train_dataloader = get_dataloader(TRAIN_DIR, batch_size)
-    valid_dataloader = get_dataloader(VALID_DIR, batch_size, shuffle=False)
+    train_dataloader = get_dataloader(TRAIN_DIR, batch_size, melspectogram_params)
+    valid_dataloader = get_dataloader(VALID_DIR, batch_size, melspectogram_params, shuffle=False)
 
     # Dataloader returns batch and vector of labels
     # batch = [batch_size, 1, height, width]
