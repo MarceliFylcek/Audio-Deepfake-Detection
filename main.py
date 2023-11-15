@@ -5,6 +5,8 @@ from torch.optim.lr_scheduler import (
 from transformers import Dinov2Config
 
 from mel_spectrogram import Mel_Spectrogram
+from mfcc import MFCC
+from spectrogram import Spectrogram
 import torch
 import os
 import wandb
@@ -16,7 +18,7 @@ from tqdm import tqdm
 import train_options
 from utils import get_dataloader
 
-melspectogram_params = melspectogram_params_vit16 #for pretrained transformer
+# melspectogram_params = melspectogram_params_vit16 #for pretrained transformer
 
 """
 Folder structure:
@@ -69,13 +71,14 @@ if __name__ == "__main__":
 
     # Get training and validation dataloader
     train_dataloader = get_dataloader(
-        TRAIN_DIR, batch_size, melspect_params=melspectogram_params
+        TRAIN_DIR, batch_size, melspect_params=melspectogram_params, transform=Spectrogram
     )
     valid_dataloader = get_dataloader(
         VALID_DIR,
         batch_size,
         shuffle=False,
         melspect_params=melspectogram_params,
+        transform=Spectrogram
     )
 
     # Dataloader returns batch and vector of labels
@@ -84,12 +87,12 @@ if __name__ == "__main__":
     # Batch is passed to the model
 
     # Create the model
-    # m = CNNModel(n_filters=25, input_shape=[batch.shape[2], batch.shape[3]]).to(device)
+    m = CNNModel(n_filters=5, input_shape=[batch.shape[2], batch.shape[3]]).to(device)
     # m = CNN_LSTM_Model(n_filters=25, input_shape=[batch.shape[2], batch.shape[3]], hidden_size=1024, num_layers=batch.shape[3])
     # config = Dinov2Config(num_channels=1)
     # m = DinoV2TransformerBasedModel(config).to(device)
-    m = get_VIT()
-    m.to(device)
+    # m = get_VIT()
+    # m.to(device)
 
     # Pretrained model loading
     if pretrained_name is not None:
