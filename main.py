@@ -8,13 +8,15 @@ from mel_spectrogram import Mel_Spectrogram
 import torch
 import os
 import wandb
-from models import CNNModel, DinoV2TransformerBasedModel, CNN_LSTM_Model
+from models import CNNModel, DinoV2TransformerBasedModel, CNN_LSTM_Model, get_VIT
 import torch.optim as optim
 from sklearn.metrics import classification_report
-from config import MODELS_DIR, TRAIN_DIR, VALID_DIR, melspectogram_params
+from config import MODELS_DIR, TRAIN_DIR, VALID_DIR, melspectogram_params, melspectogram_params_vit16
 from tqdm import tqdm
 import train_options
 from utils import get_dataloader
+
+melspectogram_params = melspectogram_params_vit16 #for pretrained transformer
 
 """
 Folder structure:
@@ -83,9 +85,11 @@ if __name__ == "__main__":
 
     # Create the model
     # m = CNNModel(n_filters=25, input_shape=[batch.shape[2], batch.shape[3]]).to(device)
-    m = CNN_LSTM_Model(n_filters=25, input_shape=[batch.shape[2], batch.shape[3]], hidden_size=1024, num_layers=batch.shape[3])
-    config = Dinov2Config(num_channels=1)
+    # m = CNN_LSTM_Model(n_filters=25, input_shape=[batch.shape[2], batch.shape[3]], hidden_size=1024, num_layers=batch.shape[3])
+    # config = Dinov2Config(num_channels=1)
     # m = DinoV2TransformerBasedModel(config).to(device)
+    m = get_VIT()
+    m.to(device)
 
     # Pretrained model loading
     if pretrained_name is not None:

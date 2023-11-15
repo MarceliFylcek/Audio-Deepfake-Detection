@@ -12,3 +12,11 @@ melspectogram_params = {
     'time_milliseconds': 4_000, 
     'db_amplitude': True
 }
+
+# Set Mel Spectrogram parameters
+melspectogram_params_vit16 = {
+    'new_sample_rate': 16_000, 
+    'n_mels': 224, 
+    'time_milliseconds': 7_136, 
+    'db_amplitude': True
+}
