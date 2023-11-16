@@ -2,7 +2,7 @@ from typing import Tuple
 import torch
 from torch.utils.data import Dataset
 import os
-from mel_spectrogram import Mel_Spectrogram
+from transforms.mel_spectrogram import Mel_Spectrogram
 
 
 class FakeAudioDataset(Dataset):
