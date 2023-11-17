@@ -1,20 +1,18 @@
-from torch.optim.lr_scheduler import (
-    CosineAnnealingWarmRestarts,
-    CosineAnnealingLR,
-)
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, CosineAnnealingLR
 from transformers import Dinov2Config
 
 from mel_spectrogram import Mel_Spectrogram
 import torch
 import os
 import wandb
-from models import CNNModel, DinoV2TransformerBasedModel, CNN_LSTM_Model
+from models import CNNModel, DinoV2TransformerBasedModel
 import torch.optim as optim
 from sklearn.metrics import classification_report
+from dataset import FakeAudioDataset
 from config import MODELS_DIR, TRAIN_DIR, VALID_DIR, melspectogram_params
 from tqdm import tqdm
 import train_options
-from utils import get_dataloader
+from utils import get_dataloader, normalize_batch
 
 """
 Folder structure:
@@ -30,6 +28,7 @@ Folder structure:
 """
 
 if __name__ == "__main__":
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:128"
     # Parse input arguments
     args = train_options.parse()
 
@@ -41,6 +40,7 @@ if __name__ == "__main__":
     model_name = args.name
     no_valid = args.no_valid
     wandb_disabled = args.disable_wandb
+    normalization = args.normalization
 
     if not os.path.exists(MODELS_DIR):
         os.makedirs(MODELS_DIR)
@@ -57,24 +57,13 @@ if __name__ == "__main__":
                 "dataset": "11labs",
                 "epochs": n_epochs,
             },
-            name=args.name,
+            name=args.name
         )
-    device = (
-        torch.device("cuda")
-        if torch.cuda.is_available()
-        else torch.device("cpu")
-    )
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     # Get training and validation dataloader
-    train_dataloader = get_dataloader(
-        TRAIN_DIR, batch_size, melspect_params=melspectogram_params
-    )
-    valid_dataloader = get_dataloader(
-        VALID_DIR,
-        batch_size,
-        shuffle=False,
-        melspect_params=melspectogram_params,
-    )
+    train_dataloader = get_dataloader(TRAIN_DIR, batch_size, melspectogram_params)
+    valid_dataloader = get_dataloader(VALID_DIR, batch_size, melspectogram_params, shuffle=False)
 
     # Dataloader returns batch and vector of labels
     # batch = [batch_size, 1, height, width]
@@ -83,9 +72,8 @@ if __name__ == "__main__":
 
     # Create the model
     # m = CNNModel(n_filters=25, input_shape=[batch.shape[2], batch.shape[3]]).to(device)
-    m = CNN_LSTM_Model(n_filters=25, input_shape=[batch.shape[2], batch.shape[3]], hidden_size=1024, num_layers=batch.shape[3])
-    config = Dinov2Config(num_channels=1)
-    # m = DinoV2TransformerBasedModel(config).to(device)
+    config = Dinov2Config(num_channels=1, patch_size=4, hidden_size=48)
+    m = DinoV2TransformerBasedModel(config, train_dataloader.dataset[0][0].shape[-2:]).to(device)
 
     # Pretrained model loading
     if pretrained_name is not None:
@@ -140,8 +128,8 @@ if __name__ == "__main__":
             labels = labels.to(device)
 
             #! Batch normalization (no learnable params)
-            batch_m, batch_s = batch.mean(), batch.std()
-            batch = (batch - batch_m) / batch_s
+            if normalization:
+                batch = normalize_batch(batch)
 
             # Get the output
             output = m(batch)
@@ -156,9 +144,7 @@ if __name__ == "__main__":
             optimizer.step()
 
             # Update learning rate
-            #! Deprication warning
-            # lr_scheduler.step(epoch + int(step_counter / 192))
-            #lr_scheduler.step()
+            lr_scheduler.step(epoch + int(step_counter / 192))
 
             # Update running loss
             loss_train += loss.item() / batch_size
@@ -197,6 +183,8 @@ if __name__ == "__main__":
                 ):
                     batch = batch.to(device)
                     labels = labels.to(device)
+                    if normalization:
+                        batch = normalize_batch(batch)
                     output = m(batch)
                     loss = criterion(output, labels)
                     loss_valid += loss.item() / batch_size

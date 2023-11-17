@@ -1,4 +1,5 @@
 from abc import ABC
+from typing import Tuple
 
 import torch.nn as nn
 import torch
@@ -55,7 +56,7 @@ class CNNModel(nn.Module):
         # x = self.softmax(x)
 
         return x
-
+    
 
 class CNN_LSTM_Model(nn.Module):
     """CNN with LSTM
@@ -115,29 +116,43 @@ class CNN_LSTM_Model(nn.Module):
 
 
 class DenseClassifier(nn.Module):
-    def __init__(self):
+    def __init__(self, hidden_size: int, input_size: int):
         super(DenseClassifier, self).__init__()
-        self.Dense_A = nn.Linear(28 * 768, 14 * 768)
-        self.Dense_B = nn.Linear(14 * 768, 7 * 768)
-        self.Output_Dense = nn.Linear(7 * 768, 2)
+        self.Dense_A = nn.Linear(input_size * hidden_size, input_size * hidden_size // 8)
+        self.Dense_B = nn.Linear(input_size * hidden_size // 8, input_size * hidden_size // 24)
+        self.Output_Dense = nn.Linear(input_size * hidden_size // 24, 2)
         self.relu = nn.ReLU()
 
+        # self.Dense_A = nn.Linear(496 * hidden_features, 256 * hidden_features)
+        # self.Dense_B = nn.Linear(256 * hidden_features, 128 * hidden_features)
+        # self.Output_Dense = nn.Linear(128 * hidden_features, 2)
+        # self.relu = nn.ReLU()
+
     def forward(self, patch_embeddings: Tensor):
-        x = self.relu(
-            self.Dense_A(
-                patch_embeddings.reshape(patch_embeddings.shape[0], -1)
-            )
-        )
+        x = self.relu(self.Dense_A(patch_embeddings.reshape(patch_embeddings.shape[0], -1)))
         x = self.relu(self.Dense_B(x))
         x = self.Output_Dense(x)
         return x
 
 
 class DinoV2TransformerBasedModel(Dinov2PreTrainedModel, ABC):
-    def __init__(self, dinoV2_config):
+    def __init__(self, dinoV2_config, input_shape: Tuple[int, int]):
         super().__init__(dinoV2_config)
         self.dinoV2 = Dinov2Model(dinoV2_config)
-        self.classifier = DenseClassifier()
+        self.patch_size = dinoV2_config.patch_size
+        self.hidden_size = dinoV2_config.hidden_size
+
+        self.input_shape = input_shape
+        self.n_output_features = self.get_n_output_features(input_shape)
+        self.patches_shape = self.get_patches_shape(input_shape)
+
+        self.classifier = DenseClassifier(self.hidden_size, self.n_output_features)
+
+    def get_patches_shape(self, input_shape: Tuple[int, int]):
+        return input_shape[0] // self.patch_size, input_shape[1] // self.patch_size
+
+    def get_n_output_features(self, input_shape: Tuple[int, int]):
+        return (input_shape[0] // self.patch_size) * (input_shape[1] // self.patch_size)
 
     def forward(self, spectrograms: Tensor):
         outputs = self.dinoV2(spectrograms, output_attentions=False)
