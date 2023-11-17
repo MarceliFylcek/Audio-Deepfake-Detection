@@ -2,9 +2,9 @@ from typing import Tuple
 import torch
 from torch.utils.data import Dataset
 import os
-from mel_spectrogram import Mel_Spectrogram
-from mfcc import MFCC
-
+from transforms.mel_spectrogram import Mel_Spectrogram
+from transforms.mfcc import MFCC
+from transforms.spectrogram import Spectrogram
 
 class FakeAudioDataset(Dataset):
     def __init__(

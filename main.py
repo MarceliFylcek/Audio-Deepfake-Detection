@@ -4,9 +4,9 @@ from torch.optim.lr_scheduler import (
 )
 from transformers import Dinov2Config
 
-from mel_spectrogram import Mel_Spectrogram
-from mfcc import MFCC
-from spectrogram import Spectrogram
+from transforms.mel_spectrogram import Mel_Spectrogram
+from transforms.mfcc import MFCC
+from transforms.spectrogram import Spectrogram
 import torch
 import os
 import wandb
