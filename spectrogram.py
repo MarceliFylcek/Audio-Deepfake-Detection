@@ -12,7 +12,7 @@ class Spectrogram:
         self,
         audio_path,
         new_sample_rate,
-        n_fft,
+        n_bins,
         time_milliseconds,
         db_amplitude=False
     ):
@@ -42,15 +42,16 @@ class Spectrogram:
                 padding = (0, n_missing_samples)
                 self.waveform = torch.nn.functional.pad(self.waveform, padding)
 
-        # Create MelSpectogram transform
+        # Create Spectogram transform
         spectrogram = transforms.Spectrogram(
-            n_fft=n_fft
+            n_fft=(n_bins-1)*2,
+            hop_length=512
         )
 
         # Get hop length
-        # self.hop_length = melspect_transform.hop_length
+        self.hop_length = spectrogram.hop_length
 
-        # Create the mel spectogram
+        # Create the spectogram
         self.spectrogram = torch.squeeze(spectrogram(self.waveform))
 
         if db_amplitude:
@@ -126,7 +127,7 @@ class Spectrogram:
                     plt.close()
 
     def _create_plot(self):
-        """Creates a Melspectrogram plot"""
+        """Creates a Spectrogram plot"""
 
         # Create figure and ax with a specified size
         fig, ax = plt.subplots(figsize=(10, 6))
@@ -138,8 +139,8 @@ class Spectrogram:
 
         # Set label names and title
         ax.set_xlabel("Frames")
-        ax.set_ylabel("Mel Bins")
-        ax.set_title("Mel Spectrogram")
+        ax.set_ylabel("Freq bins")
+        ax.set_title("Spectrogram")
 
         # Set fig type as colorbar
         fig.colorbar(mel_plot, format="%+2.0f", cmap="magma")
@@ -147,7 +148,7 @@ class Spectrogram:
         return fig, ax
 
     def display(self):
-        """Creates and displays Melspectogram plot"""
+        """Creates and displays Spectrogram plot"""
 
         # Create the plot
         self._create_plot()

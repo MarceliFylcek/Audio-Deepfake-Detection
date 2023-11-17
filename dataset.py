@@ -14,7 +14,7 @@ class FakeAudioDataset(Dataset):
         transform,
         time_milliseconds: int,
         new_sample_rate,
-        n_mels,
+        n_bins,
         db_amplitude,
     ):
         """Spoof audio dataset
@@ -29,7 +29,7 @@ class FakeAudioDataset(Dataset):
         self.fake_folder = fake_folder
         self.time_milliseconds = time_milliseconds
         self.sampling_rate = new_sample_rate
-        self.n_mels = n_mels
+        self.n_bins = n_bins
         self.db_amplitude = db_amplitude
         self.transform = transform
 
@@ -56,15 +56,15 @@ class FakeAudioDataset(Dataset):
         path = self.filepaths[index][0]
         label = self.labels[index]
 
-        spectogram = self.transform(
+        transform = self.transform(
             path,
             self.sampling_rate,
-            self.n_mels,
+            self.n_bins,
             self.time_milliseconds,
             self.db_amplitude,
         )
 
-        raw_data = spectogram.get_raw_data()
+        raw_data = transform.get_raw_data()
 
         # Add 1 for channels
         raw_data = raw_data.unsqueeze(dim=0)

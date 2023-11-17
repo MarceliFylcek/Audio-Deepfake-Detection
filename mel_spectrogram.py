@@ -12,12 +12,12 @@ class Mel_Spectrogram:
         self,
         audio_path,
         new_sample_rate=16_000,
-        n_mels=64,
+        n_bins=64,
         time_milliseconds=None,
         db_amplitude=False,
     ):
         """
-        :param n_mels: Number of mel filter banks
+        :param n_bins: Number of mel filter banks
         """
 
         # Load the audio waveform
@@ -48,7 +48,7 @@ class Mel_Spectrogram:
         # Create MelSpectogram transform
         melspect_transform = transforms.MelSpectrogram(
             sample_rate=self.sample_rate,
-            n_mels=n_mels,
+            n_mels=n_bins,
             n_fft=1024,
             hop_length=512,
         )

@@ -42,28 +42,19 @@ class MFCC:
                 padding = (0, n_missing_samples)
                 self.waveform = torch.nn.functional.pad(self.waveform, padding)
 
-        # Create MelSpectogram transform
+        # Get hop length
+        self.hop_length = 512
+
+        # Create MFCC transform
         mfcc_transform = transforms.MFCC(
             sample_rate=self.sample_rate,
             n_mfcc=n_mfcc,
             log_mels=not db_amplitude,
-            melkwargs={'n_fft': 1024, 'hop_length': 512, 'n_mels':2*n_mfcc},
+            melkwargs={'n_fft': 1024, 'hop_length': self.hop_length, 'n_mels':n_mfcc},
         )
 
-        # Get hop length
-        # self.hop_length = melspect_transform.hop_length
-
-        # Create the mel spectogram
+        # Create the mfcc
         self.mfcc_transform = torch.squeeze(mfcc_transform(self.waveform))
-
-        # if db_amplitude:
-        #     self.melspectrogram = amplitude_to_DB(
-        #         self.melspectrogram,
-        #         multiplier=20.0, # 20 for aplitude to power
-        #         amin=1e-4, # Number to clamp x
-        #         db_multiplier=1.0,
-        #         top_db=80.0,
-        #     )
 
     def get_raw_data(self):
         return self.mfcc_transform
@@ -129,7 +120,7 @@ class MFCC:
                     plt.close()
 
     def _create_plot(self):
-        """Creates a Melspectrogram plot"""
+        """Creates a mfcc plot"""
 
         # Create figure and ax with a specified size
         fig, ax = plt.subplots(figsize=(10, 6))
@@ -141,8 +132,8 @@ class MFCC:
 
         # Set label names and title
         ax.set_xlabel("Frames")
-        ax.set_ylabel("Mel Bins")
-        ax.set_title("Mel Spectrogram")
+        ax.set_ylabel("Freq bins")
+        ax.set_title("MFCC")
 
         # Set fig type as colorbar
         fig.colorbar(mel_plot, format="%+2.0f", cmap="magma")
@@ -150,7 +141,7 @@ class MFCC:
         return fig, ax
 
     def display(self):
-        """Creates and displays Melspectogram plot"""
+        """Creates and displays MFCC plot"""
 
         # Create the plot
         self._create_plot()
