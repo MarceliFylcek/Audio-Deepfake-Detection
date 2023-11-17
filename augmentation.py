@@ -65,9 +65,9 @@ def add_noise(speech, noise_raw, audio_sample_rate, noise_sample_rate, snr):
 
 if __name__ == '__main__':
     from utils import play, change_audio_len, plot_waveform # helper functions for developement
-    rir_f = 'resources/others/room_impulse_responses/rir__1_98_2_8.flac'
+    rir_f = 'augmentation samples/room_impulse_responses/rir__1_98_2_8.flac'
     audio_f = 'resources/train/real/198-0004.flac'
-    noise_f = 'resources/others/background_noises/noise.flac'
+    noise_f = 'augmentation samples/background_noises/noise.flac'
     
     timestamps = get_rir_timestamps(rir_f)
 
