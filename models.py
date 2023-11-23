@@ -5,6 +5,8 @@ import torch.nn as nn
 import torch
 from torch import Tensor
 from transformers import Dinov2PreTrainedModel, Dinov2Model
+from torchvision.models import vit_b_16
+from torchvision.models import ViT_B_16_Weights
 
 
 def calc_shape(in_shape, padding, dilation, k_size, stride):
@@ -160,3 +162,56 @@ class DinoV2TransformerBasedModel(Dinov2PreTrainedModel, ABC):
 
         logits = self.classifier(patch_embeddings)
         return logits
+
+class MLP(nn.Module):
+    """MLP model to append to transformer
+
+    Args:
+        MLP model
+    """
+    def __init__(self):
+        super(MLP, self).__init__()
+
+        self.fc1 = nn.Linear(1000, 256)
+        self.fc2 = nn.Linear(256, 2)
+
+    def forward(self, x):
+
+        x = self.fc1(x)
+
+        x = self.fc2(x)
+    #  x = self.softmax(x)
+
+        return x
+    
+def get_VIT():
+    """Loads transformer pretrained on ImageNET and appends MLP model to it
+
+    Returns:
+        transformer model
+    """
+    m = vit_b_16(weights=ViT_B_16_Weights.DEFAULT)
+    # adjust to 1 channel data
+    m.conv_proj = nn.Conv2d(1, 768, kernel_size=(16, 16), stride=(16, 16))
+    for param in m.parameters():
+        param.requires_grad = False
+    mlp = MLP()
+    final_model = nn.Sequential(m, mlp)
+    return final_model
+
+def adjust_data(batch, device):
+    """converts the batch to fit the pretrained transformer
+
+    Args:
+        batch: batch of inputs
+        device: device to store the batch on
+
+    Returns:
+        preprocessed batch
+    """
+    preprocessing = ViT_B_16_Weights.DEFAULT.transforms()
+    preprocessing.mean = preprocessing.mean[0]
+    preprocessing.std = preprocessing.std[0]
+    return preprocessing(batch).to(device)
+
+    

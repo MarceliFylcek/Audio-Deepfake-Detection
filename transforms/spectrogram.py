@@ -7,18 +7,15 @@ import matplotlib.pyplot as plt
 import sounddevice as sd
 
 
-class Mel_Spectrogram:
+class Spectrogram:
     def __init__(
         self,
         audio_path,
-        new_sample_rate=16_000,
-        n_bins=64,
-        time_milliseconds=None,
-        db_amplitude=False,
+        new_sample_rate,
+        n_bins,
+        time_milliseconds,
+        db_amplitude=False
     ):
-        """
-        :param n_bins: Number of mel filter banks
-        """
 
         # Load the audio waveform
         self.waveform, self.sample_rate = torchaudio.load(audio_path)
@@ -45,23 +42,21 @@ class Mel_Spectrogram:
                 padding = (0, n_missing_samples)
                 self.waveform = torch.nn.functional.pad(self.waveform, padding)
 
-        # Create MelSpectogram transform
-        melspect_transform = transforms.MelSpectrogram(
-            sample_rate=self.sample_rate,
-            n_mels=n_bins,
-            n_fft=1024,
-            hop_length=512,
+        # Create Spectogram transform
+        spectrogram = transforms.Spectrogram(
+            n_fft=(n_bins-1)*2,
+            hop_length=512
         )
 
         # Get hop length
-        self.hop_length = melspect_transform.hop_length
+        self.hop_length = spectrogram.hop_length
 
-        # Create the mel spectogram
-        self.melspectrogram = torch.squeeze(melspect_transform(self.waveform))
+        # Create the spectogram
+        self.spectrogram = torch.squeeze(spectrogram(self.waveform))
 
         if db_amplitude:
-            self.melspectrogram = amplitude_to_DB(
-                self.melspectrogram,
+            self.spectrogram = amplitude_to_DB(
+                self.spectrogram,
                 multiplier=20.0, # 20 for aplitude to power
                 amin=1e-4, # Number to clamp x
                 db_multiplier=1.0,
@@ -69,7 +64,7 @@ class Mel_Spectrogram:
             )
 
     def get_raw_data(self):
-        return self.melspectrogram
+        return self.spectrogram
 
     def _update_plot_marker(self, ax, current_frame):
         """Moves red marker on the plot"""
@@ -132,20 +127,20 @@ class Mel_Spectrogram:
                     plt.close()
 
     def _create_plot(self):
-        """Creates a Melspectrogram plot"""
+        """Creates a Spectrogram plot"""
 
         # Create figure and ax with a specified size
         fig, ax = plt.subplots(figsize=(10, 6))
 
         # Plot spectogram
         mel_plot = ax.imshow(
-            self.melspectrogram, aspect="auto", origin="lower", cmap="magma"
+            self.spectrogram, aspect="auto", origin="lower", cmap="magma"
         )
 
         # Set label names and title
         ax.set_xlabel("Frames")
-        ax.set_ylabel("Mel Bins")
-        ax.set_title("Mel Spectrogram")
+        ax.set_ylabel("Freq bins")
+        ax.set_title("Spectrogram")
 
         # Set fig type as colorbar
         fig.colorbar(mel_plot, format="%+2.0f", cmap="magma")
@@ -153,7 +148,7 @@ class Mel_Spectrogram:
         return fig, ax
 
     def display(self):
-        """Creates and displays Melspectogram plot"""
+        """Creates and displays Spectrogram plot"""
 
         # Create the plot
         self._create_plot()

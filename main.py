@@ -1,18 +1,22 @@
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, CosineAnnealingLR
 from transformers import Dinov2Config
 
-from mel_spectrogram import Mel_Spectrogram
+from transforms.mel_spectrogram import Mel_Spectrogram
+from transforms.mfcc import MFCC
+from transforms.spectrogram import Spectrogram
 import torch
 import os
 import wandb
-from models import CNNModel, DinoV2TransformerBasedModel
+from models import CNNModel, DinoV2TransformerBasedModel, CNN_LSTM_Model, get_VIT
 import torch.optim as optim
 from sklearn.metrics import classification_report
-from dataset import FakeAudioDataset
-from config import MODELS_DIR, TRAIN_DIR, VALID_DIR, melspectogram_params
+from config import MODELS_DIR, TRAIN_DIR, VALID_DIR, melspectogram_params, melspectogram_params_vit16
+
 from tqdm import tqdm
 import train_options
 from utils import get_dataloader, normalize_batch
+
+# melspectogram_params = melspectogram_params_vit16 #for pretrained transformer
 
 """
 Folder structure:
@@ -62,8 +66,16 @@ if __name__ == "__main__":
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     # Get training and validation dataloader
-    train_dataloader = get_dataloader(TRAIN_DIR, batch_size, melspectogram_params)
-    valid_dataloader = get_dataloader(VALID_DIR, batch_size, melspectogram_params, shuffle=False)
+    train_dataloader = get_dataloader(
+        TRAIN_DIR, batch_size, melspect_params=melspectogram_params, transform=Spectrogram
+    )
+    valid_dataloader = get_dataloader(
+        VALID_DIR,
+        batch_size,
+        shuffle=False,
+        melspect_params=melspectogram_params,
+        transform=Spectrogram
+    )
 
     # Dataloader returns batch and vector of labels
     # batch = [batch_size, 1, height, width]
@@ -71,9 +83,12 @@ if __name__ == "__main__":
     # Batch is passed to the model
 
     # Create the model
-    # m = CNNModel(n_filters=25, input_shape=[batch.shape[2], batch.shape[3]]).to(device)
-    config = Dinov2Config(num_channels=1, patch_size=4, hidden_size=48)
-    m = DinoV2TransformerBasedModel(config, train_dataloader.dataset[0][0].shape[-2:]).to(device)
+    m = CNNModel(n_filters=5, input_shape=[batch.shape[2], batch.shape[3]]).to(device)
+    # m = CNN_LSTM_Model(n_filters=25, input_shape=[batch.shape[2], batch.shape[3]], hidden_size=1024, num_layers=batch.shape[3])
+    # config = Dinov2Config(num_channels=1, patch_size=4, hidden_size=48)
+    # m = DinoV2TransformerBasedModel(config, train_dataloader.dataset[0][0].shape[-2:]).to(device)
+    # m = get_VIT()
+    # m.to(device)
 
     # Pretrained model loading
     if pretrained_name is not None:
