@@ -61,3 +61,10 @@ def change_audio_len(audio, s_rate, time_ms):
         audio = torch.nn.functional.pad(audio, padding)
 
     return audio
+
+ 
+def normalize_batch(batch):
+    batch_m, batch_s = batch.mean(), batch.std()
+    batch = (batch - batch_m) / batch_s
+    return batch
+ 

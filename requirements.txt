@@ -8,3 +8,4 @@ wandb
 tqdm
 scikit-learn
 git+https://github.com/huggingface/transformers
+opencv-python
