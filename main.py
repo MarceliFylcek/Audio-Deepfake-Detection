@@ -4,6 +4,7 @@ from transformers import Dinov2Config
 from transforms.mel_spectrogram import Mel_Spectrogram
 from transforms.mfcc import MFCC
 from transforms.spectrogram import Spectrogram
+from transforms.cqt import CQT
 import torch
 import os
 import wandb

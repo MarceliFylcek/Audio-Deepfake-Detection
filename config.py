@@ -8,7 +8,7 @@ VALID_DIR = "elevenlabs/valid"
 # Set Mel Spectrogram parameters
 melspectogram_params = {
     'new_sample_rate': 16_000,
-    'n_mels': 128,
+    'n_bins': 128,
     'time_milliseconds': 4_000,
     'db_amplitude': True
 }
@@ -24,5 +24,6 @@ melspectogram_params_vit16 = {
 # output shape of spectrogram = [n_fft/2 + 1, (time*sample_rate)/hop_length]
 # output shape of melspectrogram = [n_mels, (time*sample_rate)/hop_length]
 # output shape of MFCC = [n_mfcc, (time*sample_rate)/hop_length]
+# output shape of CQT = [n_bins, (time*sample_rate)/hop_length]
 
 # n_bins = n_mels = n_mfcc = (n_fft-1)*2
