@@ -71,3 +71,55 @@ class FakeAudioDataset(Dataset):
         raw_data = raw_data.unsqueeze(dim=0)
 
         return raw_data, label
+
+
+class SpeechIdentificationDataset(Dataset):
+    def __init__(
+        self,
+        speakers_dir: str,
+        transform,
+        time_milliseconds: int,
+        new_sample_rate,
+        n_bins,
+        db_amplitude,
+    ):
+        """Speech indentification dataset"""
+
+        self.speakers_dir = speakers_dir
+        self.time_milliseconds = time_milliseconds
+        self.sampling_rate = new_sample_rate
+        self.n_bins = n_bins
+        self.db_amplitude = db_amplitude
+        self.transform = transform
+
+        self.file_paths = []
+        self.labels = []
+
+        for speaker_id in os.listdir(self.speakers_dir):
+            for utterance in speaker_id:
+                self.file_paths.extend(
+                    os.path.join(self.speakers_dir, speaker_id, utterance)
+                )
+                self.labels.extend(speaker_id)
+
+    def __len__(self):
+        return len(self.file_paths)
+
+    def __getitem__(self, index):
+        path = self.recording_paths[index]
+        label = self.labels[index]
+
+        transform = self.transform(
+            path,
+            self.sampling_rate,
+            self.n_bins,
+            self.time_milliseconds,
+            self.db_amplitude,
+        )
+
+        raw_data = transform.get_raw_data()
+
+        # Add 1 for channels
+        raw_data = raw_data.unsqueeze(dim=0)
+
+        return raw_data, label

@@ -1,5 +1,6 @@
 import os
-from dataset import FakeAudioDataset
+from typing import Dict, Tuple
+from dataset import FakeAudioDataset, SpeechIdentificationDataset
 from torch.utils.data import DataLoader
 import traceback
 import sounddevice as sd
@@ -12,8 +13,19 @@ def get_dataloader(dataset_path, batch_size, melspect_params, transform, shuffle
 
     #! Cuts only first 4 seconds of the recording as of now
     dataset = FakeAudioDataset(real_folder, fake_folder, transform, **melspect_params)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=0)
+    dataloader = DataLoader(
+        dataset, batch_size=batch_size, shuffle=shuffle, num_workers=0
+    )
+    return dataloader
 
+
+def get_speakers_dataloader(
+    speakers_path, batch_size, melspect_params, transform, shuffle=True
+):
+    dataset = SpeechIdentificationDataset(speakers_path, transform, **melspect_params)
+    dataloader = DataLoader(
+        dataset, batch_size=batch_size, shuffle=shuffle, num_workers=0
+    )
     return dataloader
 
 
@@ -24,12 +36,13 @@ def play(audio, sample_rate):
         samplerate=sample_rate,
     ):
         sd.play(audio.T, sample_rate)
-        sd.sleep(int(audio.shape[1]/sample_rate)*1000)
+        sd.sleep(int(audio.shape[1] / sample_rate) * 1000)
 
 
 def plot_waveform(waveform, sample_rate, title="Waveform", xlim=None):
 
     import matplotlib.pyplot as plt
+
     waveform = waveform.numpy()
 
     num_channels, num_frames = waveform.shape
@@ -62,9 +75,55 @@ def change_audio_len(audio, s_rate, time_ms):
 
     return audio
 
- 
+
 def normalize_batch(batch):
     batch_m, batch_s = batch.mean(), batch.std()
     batch = (batch - batch_m) / batch_s
     return batch
- 
+
+
+def get_mean_std(dataloader: DataLoader) -> Tuple[torch.Tensor, torch.Tensor]:
+
+    fst_moment = 0.0
+    snd_moment = 0.0
+    cnt = 0
+
+    for batch, _ in dataloader:
+        b, c, h, w = batch.shape
+        nb_pixels = b * h * w
+        sum_ = torch.sum(batch, dim=[0, 2, 3])
+        sum_of_square = torch.sum(batch**2, dim=[0, 2, 3])
+        fst_moment = (cnt * fst_moment + sum_) / (cnt + nb_pixels)
+        snd_moment = (cnt * snd_moment + sum_of_square) / (cnt + nb_pixels)
+        cnt += nb_pixels
+
+    mean, std = fst_moment, torch.sqrt(snd_moment - fst_moment**2)
+
+    return mean, std
+
+
+def get_librispeech_names(file_path: str) -> Dict[int, str]:
+    """
+    Returns a dictionary with speaker id and speaker name from librispeech
+    dataset.
+
+    Args:
+        file_path (str)
+
+    Returns:
+        Dict[int:str]
+    """
+
+    speaker_names = {}
+
+    with open(file_path, "r") as file:
+        lines = file.readlines()
+
+    for line in lines:
+        if not line.startswith(";"):
+            fields = line.strip().split("|")
+            speaker_id = int(fields[0].strip())
+            name = fields[-1].strip()
+            speaker_names[speaker_id] = name
+
+    return speaker_names
