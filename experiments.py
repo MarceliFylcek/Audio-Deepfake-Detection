@@ -7,13 +7,15 @@ from transformers import Dinov2Config
 from transforms.mel_spectrogram import Mel_Spectrogram
 from transforms.mfcc import MFCC
 from transforms.spectrogram import Spectrogram
+from transforms.cqt import CQT
+
 import torch
 import os
 import wandb
 from models import CNNModel, DinoV2TransformerBasedModel, CNN_LSTM_Model
 import torch.optim as optim
 from sklearn.metrics import classification_report
-from config import MODELS_DIR, TRAIN_DIR_11LABS, VALID_DIR_11LABS, DIR_11LABS, TRAIN_DIR_DFDC, VALID_DIR_DFDC, DIR_DFDC, TRAIN_DIR_MIXED, VALID_DIR_MIXED,melspectogram_params
+from config import MODELS_DIR, TRAIN_DIR_11LABS, VALID_DIR_11LABS, TRAIN_DIR_COREJ, VALID_DIR_COREJ, TRAIN_DIR_MIXED, VALID_DIR_MIXED,melspectogram_params
 from tqdm import tqdm
 from utils import get_dataloader, normalize_batch
 from augmentation import reverb_audio, noisy_audio, speech_audio
@@ -23,11 +25,11 @@ import random
 ### OPCJE ###
 ARCHITECTURES = ["CNN", "CNN+LSTM", "Transformer"]
 DATESETS = [[TRAIN_DIR_11LABS, VALID_DIR_11LABS],
-           [DIR_11LABS, DIR_DFDC],
-           [TRAIN_DIR_DFDC, VALID_DIR_DFDC],
-           [DIR_DFDC, DIR_11LABS],
+           [TRAIN_DIR_11LABS, VALID_DIR_COREJ],
+           [TRAIN_DIR_COREJ, VALID_DIR_COREJ],
+           [TRAIN_DIR_COREJ, VALID_DIR_11LABS],
            [TRAIN_DIR_MIXED, VALID_DIR_MIXED]]
-TRAIN_OPTIONS = [Mel_Spectrogram, MFCC, Spectrogram]
+TRAIN_OPTIONS = [Mel_Spectrogram, MFCC, Spectrogram, CQT]
 AUGMENTATIONS = [True, False]
 
 if __name__ == "__main__":
@@ -43,18 +45,17 @@ if __name__ == "__main__":
     no_valid = args.no_valid
     wandb_disabled = args.disable_wandb
     normalization = args.normalization
-    architecture = args.architecture
 
     if not os.path.exists(MODELS_DIR):
         os.makedirs(MODELS_DIR)
 
-    for architercute in ARCHITECTURES:
+    for architecture in ARCHITECTURES:
         for dataset in DATESETS:
             for train_option in TRAIN_OPTIONS:
                 for augmentation in AUGMENTATIONS:
                     if not wandb_disabled:
                         wandb.init(
-                            project="audio-deepfake-detection",
+                            project="audio-deepfake-tests",
                             config={
                                 "learning_rate": lr,
                                 "architecture": architecture,
@@ -218,13 +219,13 @@ if __name__ == "__main__":
                         if epoch % checkpoint_freq == 0:
                             try:
                                 path = (
-                                    os.path.join(MODELS_DIR, model_name + "_e" + str(epoch))
+                                    os.path.join(MODELS_DIR, f"{architecture}_{dataset[0]}_{dataset[1]}_{train_option}_{augmentation}_e" + str(epoch))
                                     + ".pth"
                                 )
                                 torch.save(model.state_dict(), path)
                             except Exception as e:
                                 print(f"Error while saving the model: {str(e)}")
                                 quit()
-                            print(f"Model {model_name} saved at epoch {epoch}")
+                            print(f"Model {architecture}_{dataset[0]}_{dataset[1]}_{train_option}_{augmentation}_e + str(epoch) saved at epoch {epoch}")
 
                     main_progress_bar.close()    
