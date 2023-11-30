@@ -1,6 +1,7 @@
 import torchaudio
 import sounddevice as sd
 import torch
+import random
 
 def get_rir_timestamps(rir_filename):
     """Gets the timestamps of room inpulse response in audio file
@@ -62,6 +63,24 @@ def add_noise(speech, noise_raw, audio_sample_rate, noise_sample_rate, snr):
 
     return noisy_speech
 
+def speech_audio(audio_f):
+    speech_audio, audio_sample_rate = torchaudio.load(audio_f)
+    speech_audio = change_audio_len(speech_audio, audio_sample_rate, random.randint(2000, 8000))
+    return speech_audio, audio_sample_rate
+
+def reverb_audio(audio_f, rir_f='augmentation samples/room_impulse_responses/rir__1_98_2_8.flac'):
+    speech_audio, audio_sample_rate = speech_audio(audio_f)
+    rir_audio, rir_sample_rate = torchaudio.load(rir_f)
+    timestamps = get_rir_timestamps(rir_f)
+    reverbed = room_reverb(speech_audio, rir_audio, audio_sample_rate, rir_sample_rate, timestamps)
+    return reverbed, audio_sample_rate
+
+def noisy_audio(audio_f, noise_f='augmentation samples/background_noises/noise.flac'):
+    speech_audio, audio_sample_rate = speech_audio(audio_f)
+    noise_audio, noise_sample_rate = torchaudio.load(noise_f)
+    snr = torch.tensor([10])
+    noisy = add_noise(speech_audio, noise_audio, audio_sample_rate, noise_sample_rate, snr)
+    return noisy, audio_sample_rate
 
 if __name__ == '__main__':
     from utils import play, change_audio_len, plot_waveform # helper functions for developement

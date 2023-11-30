@@ -13,6 +13,8 @@ def parse():
     parser.add_argument("--no_valid", action="store_true", help="No validation set")
     parser.add_argument("--disable_wandb", default=False, action="store_true", help="Whether to disable wandb or not")
     parser.add_argument("--normalization", default=False, action="store_true", help="Whether to normalize input or not")
+    parser.add_argument("--architecture", default="CNN", type=str,  help="Wanted Architecture")
+
 
     args = parser.parse_args()
     return args

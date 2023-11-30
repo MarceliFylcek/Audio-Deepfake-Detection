@@ -1,9 +1,21 @@
 # Where models are saved and loaded from
 MODELS_DIR = "models"
-# Training dataset
-TRAIN_DIR = "elevenlabs/train"
-# Validation dataset
-VALID_DIR = "elevenlabs/valid"
+# Training dataset (11labs)
+TRAIN_DIR_11LABS = "elevenlabs/train"
+# Validation dataset (11labs)
+VALID_DIR_11LABS = "elevenlabs/valid"
+# AlL dataset (11labs)
+DIR_11LABS = "elevenlabs/all"
+# Training dataset (dfdc)
+TRAIN_DIR_DFDC = "dfdc/train"
+# Validation dataset (dfdc)
+VALID_DIR_DFDC = "dfdc/valid"
+# All dataset (dfdc)
+DIR_DFDC = "dfdc/all"
+# Validation dataset (11labs + dfdc)
+TRAIN_DIR_MIXED = "mixed/train"
+# Validation dataset (11labs + dfdc)
+VALID_DIR_MIXED = "mixed/valid"
 
 # Set Mel Spectrogram parameters
 melspectogram_params = {
