@@ -24,7 +24,7 @@ melspectogram_params = {
 # Set Mel Spectrogram parameters
 melspectogram_params_vit16 = {
     'new_sample_rate': 16_000, 
-    'n_bins': 224, 
+    'n_bins': 128, 
     'time_milliseconds': 4_000, 
     'db_amplitude': True
 }

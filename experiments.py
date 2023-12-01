@@ -21,15 +21,6 @@ from utils import get_dataloader, normalize_batch
 from augmentation import room_reverb, add_noise
 import random
 
-def apply_augmentation(dataset, audio_sample_rate, augmentation_type='room_reverb'):
-    for index in range(len(dataset)):
-        random_number = random.randrange(5)  # Adjust the range according to your needs
-        if random_number == 0 and augmentation_type == 'room_reverb':
-            dataset[index] = room_reverb(dataset[index], audio_sample_rate)
-        elif random_number == 1 and augmentation_type == 'add_noise':
-            dataset[index] = add_noise(dataset[index], audio_sample_rate)
-
-
 ### OPCJE ###
 ARCHITECTURES = ["CNN", "CNN+LSTM", "Transformer"]
 DATESETS = [[TRAIN_DIR_11LABS, VALID_DIR_11LABS],
@@ -37,8 +28,8 @@ DATESETS = [[TRAIN_DIR_11LABS, VALID_DIR_11LABS],
            [TRAIN_DIR_COREJ, VALID_DIR_COREJ],
            [TRAIN_DIR_COREJ, VALID_DIR_11LABS],
            [TRAIN_DIR_MIXED, VALID_DIR_MIXED]]
-TRAIN_OPTIONS = [Mel_Spectrogram, MFCC, Spectrogram, CQT]
-TRAIN_OPTIONS_LABELS = ["Mel_Spectrogram", "MFCC", "Spectrogram", "CQT"]
+TRAIN_OPTIONS = [CQT, Mel_Spectrogram, MFCC, Spectrogram, CQT]
+TRAIN_OPTIONS_LABELS = ["CQT", "Mel_Spectrogram", "MFCC", "Spectrogram", "CQT"]
 AUGMENTATIONS = [True, False]
 
 if __name__ == "__main__":
@@ -77,29 +68,19 @@ if __name__ == "__main__":
                     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
                     print(f"Using device: {device}")
 
-                    ### DATA + TRAIN_OPTION ###
+                    ### DATA + TRAIN_OPTION + AUGMENTATION ###
                     train_dataloader = get_dataloader(
-                        dataset[0], batch_size, melspect_params=melspectogram_params_vit16, transform=train_option
+                        dataset[0], batch_size, melspect_params=melspectogram_params_vit16, transform=train_option,
+                        augmentations=augmentation
                     )
                     valid_dataloader = get_dataloader(
                         dataset[1],
                         batch_size,
                         shuffle=False,
                         melspect_params=melspectogram_params_vit16,
-                        transform=train_option
+                        transform=train_option,
+                        augmentations=augmentation
                     )
-
-
-                    # ### AUGMENTATIONS ###
-                    # if augmentation:
-                    #     # Apply augmentations to the training dataset
-                    #     apply_augmentation(train_dataloader.dataset, audio_sample_rate=16_000, augmentation_type='room_reverb')
-                    #     apply_augmentation(train_dataloader.dataset, audio_sample_rate=16_000, augmentation_type='add_noise')
-
-                    #     # Apply augmentations to the validation dataset
-                    #     apply_augmentation(valid_dataloader.dataset, audio_sample_rate=16_000, augmentation_type='room_reverb')
-                    #     apply_augmentation(valid_dataloader.dataset, audio_sample_rate=16_000, augmentation_type='add_noise')
-
 
                     batch, labels = next(iter(train_dataloader))
 
@@ -231,3 +212,5 @@ if __name__ == "__main__":
                             print(f"Model {architecture}_{dataset[0].replace('/', '_')}_{dataset[1].replace('/', '_')}_{TRAIN_OPTIONS_LABELS[train_index]}_augmentation={augmentation}_e + str(epoch) saved at epoch {epoch}")
 
                     main_progress_bar.close()    
+
+                wandb.finish()
