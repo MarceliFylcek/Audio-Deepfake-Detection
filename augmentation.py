@@ -63,23 +63,21 @@ def add_noise(speech, noise_raw, audio_sample_rate, noise_sample_rate, snr):
 
     return noisy_speech
 
-def speech_audio(audio_f):
+def Speech_audio(audio_f):
     speech_audio, audio_sample_rate = torchaudio.load(audio_f)
-    speech_audio = change_audio_len(speech_audio, audio_sample_rate, random.randint(2000, 8000))
+    speech_audio = change_audio_len(speech_audio, audio_sample_rate, 4000)
     return speech_audio, audio_sample_rate
 
 def reverb_audio(audio_f, rir_f='augmentation samples/room_impulse_responses/rir__1_98_2_8.flac'):
-    speech_audio, audio_sample_rate = speech_audio(audio_f)
     rir_audio, rir_sample_rate = torchaudio.load(rir_f)
     timestamps = get_rir_timestamps(rir_f)
-    reverbed = room_reverb(speech_audio, rir_audio, audio_sample_rate, rir_sample_rate, timestamps)
+    reverbed = room_reverb(audio_f, rir_audio, 16000, rir_sample_rate, timestamps)
     return reverbed, audio_sample_rate
 
 def noisy_audio(audio_f, noise_f='augmentation samples/background_noises/noise.flac'):
-    speech_audio, audio_sample_rate = speech_audio(audio_f)
     noise_audio, noise_sample_rate = torchaudio.load(noise_f)
     snr = torch.tensor([10])
-    noisy = add_noise(speech_audio, noise_audio, audio_sample_rate, noise_sample_rate, snr)
+    noisy = add_noise(audio_f, noise_audio, 16000, noise_sample_rate, snr)
     return noisy, audio_sample_rate
 
 if __name__ == '__main__':

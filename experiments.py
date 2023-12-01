@@ -15,10 +15,10 @@ import wandb
 from models import CNNModel, DinoV2TransformerBasedModel, CNN_LSTM_Model
 import torch.optim as optim
 from sklearn.metrics import classification_report
-from config import MODELS_DIR, TRAIN_DIR_11LABS, VALID_DIR_11LABS, TRAIN_DIR_COREJ, VALID_DIR_COREJ, TRAIN_DIR_MIXED, VALID_DIR_MIXED,melspectogram_params
+from config import MODELS_DIR, TRAIN_DIR_11LABS, VALID_DIR_11LABS, TRAIN_DIR_COREJ, VALID_DIR_COREJ, TRAIN_DIR_MIXED, VALID_DIR_MIXED, melspectogram_params_vit16
 from tqdm import tqdm
 from utils import get_dataloader, normalize_batch
-from augmentation import reverb_audio, noisy_audio, speech_audio
+from augmentation import room_reverb, add_noise
 import random
 
 
@@ -30,7 +30,8 @@ DATESETS = [[TRAIN_DIR_11LABS, VALID_DIR_11LABS],
            [TRAIN_DIR_COREJ, VALID_DIR_11LABS],
            [TRAIN_DIR_MIXED, VALID_DIR_MIXED]]
 TRAIN_OPTIONS = [Mel_Spectrogram, MFCC, Spectrogram, CQT]
-AUGMENTATIONS = [True, False]
+TRAIN_OPTIONS_LABElS = ["Mel_Spectrogram", "MFCC", "Spectrogram", "CQT"]
+AUGMENTATIONS = [False, True]
 
 if __name__ == "__main__":
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:128"
@@ -51,7 +52,7 @@ if __name__ == "__main__":
 
     for architecture in ARCHITECTURES:
         for dataset in DATESETS:
-            for train_option in TRAIN_OPTIONS:
+            for train_index, train_option in enumerate(TRAIN_OPTIONS):
                 for augmentation in AUGMENTATIONS:
                     if not wandb_disabled:
                         wandb.init(
@@ -62,7 +63,7 @@ if __name__ == "__main__":
                                 "dataset": f"{dataset[0]}_{dataset[1]}",
                                 "epochs": n_epochs,
                             },
-                            name=f"{architecture}_{dataset[0]}_{dataset[1]}_{train_option}_{augmentation}"
+                            name=f"{architecture}_{dataset[0].replace('/', '_')}_{dataset[1].replace('/', '_')}_{TRAIN_OPTIONS_LABElS[train_index]}_{augmentation}"
                         )
 
                     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -70,34 +71,31 @@ if __name__ == "__main__":
 
                     ### DATA + TRAIN_OPTION ###
                     train_dataloader = get_dataloader(
-                        dataset[0], batch_size, melspect_params=melspectogram_params, transform=train_option
+                        dataset[0], batch_size, melspect_params=melspectogram_params_vit16, transform=train_option
                     )
                     valid_dataloader = get_dataloader(
                         dataset[1],
                         batch_size,
                         shuffle=False,
-                        melspect_params=melspectogram_params,
+                        melspect_params=melspectogram_params_vit16,
                         transform=train_option
                     )
 
+
                     ### AUGMENTATIONS ###
                     if augmentation:
-                        for index in range(train_dataloader):
-                            random_number = random.randrange(3)
+                        for index in range(len(train_dataloader.dataset)):
+                            random_number = random.randrange(5)
                             if random_number == 0:
-                                batch[index] = reverb_audio(train_dataloader.dataset[index])
+                                train_dataloader.dataset[index] = room_reverb(speech=train_dataloader.dataset[index], audio_sample_rate=16_000)
                             elif random_number == 1:
-                                batch[index] = noisy_audio(train_dataloader.dataset[index])
-                            elif random_number == 2:
-                                batch[index] = speech_audio(train_dataloader.dataset[index])
-                        for index in range(valid_dataloader):
-                            random_number = random.randrange(3)
+                                train_dataloader.dataset[index] = add_noise(speech=train_dataloader.dataset[index], audio_sample_rate=16_000)
+                        for index in range(valid_dataloader.dataset):
+                            random_number = random.randrange(5)
                             if random_number == 0:
-                                batch[index] = reverb_audio(valid_dataloader.dataset[index])
+                                valid_dataloader.dataset[index] = room_reverb(speech=valid_dataloader.dataset[index], audio_sample_rate=16_000)
                             elif random_number == 1:
-                                batch[index] = noisy_audio(valid_dataloader.dataset[index])
-                            elif random_number == 2:
-                                batch[index] = speech_audio(valid_dataloader.dataset[index])
+                                valid_dataloader.dataset[index] = add_noise(speech=valid_dataloader.dataset[index], audio_sample_rate=16_000)
 
 
                     batch, labels = next(iter(train_dataloader))
@@ -217,15 +215,16 @@ if __name__ == "__main__":
 
                         ### SAVE MODEL ###
                         if epoch % checkpoint_freq == 0:
-                            try:
-                                path = (
-                                    os.path.join(MODELS_DIR, f"{architecture}_{dataset[0]}_{dataset[1]}_{train_option}_{augmentation}_e" + str(epoch))
-                                    + ".pth"
-                                )
-                                torch.save(model.state_dict(), path)
-                            except Exception as e:
-                                print(f"Error while saving the model: {str(e)}")
-                                quit()
-                            print(f"Model {architecture}_{dataset[0]}_{dataset[1]}_{train_option}_{augmentation}_e + str(epoch) saved at epoch {epoch}")
+                            # try:
+                            path = (
+                                os.path.join(MODELS_DIR, f"{architecture}_{dataset[0].replace('/', '_')}_{dataset[1].replace('/', '_')}_{TRAIN_OPTIONS_LABElS[train_index]}_{augmentation}_e" + str(epoch))
+                                + ".pth"
+                            )
+                            print(path)
+                            torch.save(model.state_dict(), path)
+                            # except Exception as e:
+                            #     print(f"Error while saving the model: {str(e)}")
+                            #     quit()
+                            print(f"Model {architecture}_{dataset[0].replace('/', '_')}_{dataset[1].replace('/', '_')}_{TRAIN_OPTIONS_LABElS[train_index]}_{augmentation}_e + str(epoch) saved at epoch {epoch}")
 
                     main_progress_bar.close()    
