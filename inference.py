@@ -8,7 +8,7 @@ from matplotlib.colors import Normalize
 from torch.nn import Module
 from transformers import Dinov2Config
 
-from mel_spectrogram import Mel_Spectrogram
+from transforms.mel_spectrogram import Mel_Spectrogram
 from models import DinoV2TransformerBasedModel
 
 
@@ -99,8 +99,52 @@ def test_voice(model: Module, path_to_voice_file: str, time_milliseconds: int, s
                              spectrogram=spectrogram_data[0, 0].detach().cpu().numpy())
 
 
+def saliency(model: Module, path_to_voice_file: str, time_milliseconds: int, sampling_rate: int, n_mels: int):
+    model.eval()
+    for param in model.parameters():
+        param.requires_grad = False
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    model.to(device)
+
+    spectrogram = Mel_Spectrogram(path_to_voice_file, sampling_rate, n_mels, time_milliseconds)
+    spectrogram_data = spectrogram.get_raw_data().unsqueeze(0).unsqueeze(0).to(device)
+
+    # we want to calculate gradient of the highest score w.r.t. input
+    # so set requires_grad to True for input
+    spectrogram_data.requires_grad = True
+
+    # forward pass to calculate predictions
+    class_values = model(spectrogram_data)
+    score, indices = torch.max(class_values, 1)
+    # backward pass to get gradients of score predicted class w.r.t. input image
+    score.backward()
+    # get max along channel axis
+    slc, _ = torch.max(torch.abs(spectrogram_data.grad[0]), dim=0)
+    # normalize to [0..1]
+    slc = (slc - slc.min()) / (slc.max() - slc.min())
+
+    cmap = plt.get_cmap("magma")
+    normalized_spectrogram = Normalize(vmin=spectrogram_data.min(), vmax=spectrogram_data.max())(spectrogram_data.detach().cpu().numpy()[0, 0])
+    spectrogram = cmap(normalized_spectrogram)[::-1, :, :3].astype(np.float32)
+
+    # plot image and its saleincy map
+    plt.figure(figsize=(10, 10))
+    plt.subplot(1, 2, 1)
+    plt.imshow(spectrogram)
+    plt.xticks([])
+    plt.yticks([])
+    plt.subplot(1, 2, 2)
+    plt.imshow(slc.detach().cpu().numpy(), cmap=plt.cm.hot)
+    plt.xticks([])
+    plt.yticks([])
+    plt.show()
+
+
 if __name__ == "__main__":
     print("Loading model...")
-    m = DinoV2TransformerBasedModel(Dinov2Config(num_channels=1, patch_size=4, hidden_size=48))
-    m.load_state_dict(torch.load(r"C:\Code\Audio-Deepfake-Detection\models\elevenlabs_patch4_e20.pth"))
-    test_voice(m, r"C:\Code\Audio-Deepfake-Detection\elevenlabs\valid\fake\61943-0003.flac", 4_000, 16_000, 64)
+    # m = CNNModel(n_filters=25, input_shape=(64, 126))
+    # m.load_state_dict(torch.load(r"C:\Code\Audio-Deepfake-Detection\models\elevenlabsFLAC_p4_e20.pth.pth"))
+    m = DinoV2TransformerBasedModel(Dinov2Config(num_channels=1, patch_size=4, hidden_size=48), input_shape=(64, 126))
+    m.load_state_dict(torch.load(r"C:\Code\Audio-Deepfake-Detection\models\elevenlabsFLAC_p4_e20.pth"))
+    saliency(m, r"C:\Code\Audio-Deepfake-Detection\elevenlabs\valid\real\61943-0003.flac", 4_000, 16_000, 64)
+    # test_voice(m, r"C:\Code\Audio-Deepfake-Detection\elevenlabs\valid\real\61943-0003.flac", 4_000, 16_000, 64)

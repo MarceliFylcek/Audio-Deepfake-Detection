@@ -125,11 +125,6 @@ class DenseClassifier(nn.Module):
         self.Output_Dense = nn.Linear(input_size * hidden_size // 24, 2)
         self.relu = nn.ReLU()
 
-        # self.Dense_A = nn.Linear(496 * hidden_features, 256 * hidden_features)
-        # self.Dense_B = nn.Linear(256 * hidden_features, 128 * hidden_features)
-        # self.Output_Dense = nn.Linear(128 * hidden_features, 2)
-        # self.relu = nn.ReLU()
-
     def forward(self, patch_embeddings: Tensor):
         x = self.relu(self.Dense_A(patch_embeddings.reshape(patch_embeddings.shape[0], -1)))
         x = self.relu(self.Dense_B(x))
