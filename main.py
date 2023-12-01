@@ -67,15 +67,17 @@ if __name__ == "__main__":
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     # Get training and validation dataloader
-    train_dataloader = get_dataloader(
-        TRAIN_DIR, batch_size, melspect_params=melspectogram_params, transform=Spectrogram
+    train_dataloader, normalizer = get_dataloader(
+        TRAIN_DIR, batch_size, melspect_params=melspectogram_params, transform=Spectrogram, normalize=normalization
     )
-    valid_dataloader = get_dataloader(
+    valid_dataloader, _ = get_dataloader(
         VALID_DIR,
         batch_size,
         shuffle=False,
         melspect_params=melspectogram_params,
-        transform=Spectrogram
+        transform=Spectrogram,
+        normalize=normalization,
+        normalizer=normalizer
     )
 
     # Dataloader returns batch and vector of labels
@@ -144,7 +146,7 @@ if __name__ == "__main__":
             labels = labels.to(device)
 
             #! Batch normalization (no learnable params)
-            if normalization:
+            if normalization == 'batch':
                 batch = normalize_batch(batch)
 
             # Get the output
@@ -199,7 +201,7 @@ if __name__ == "__main__":
                 ):
                     batch = batch.to(device)
                     labels = labels.to(device)
-                    if normalization:
+                    if normalization == 'batch':
                         batch = normalize_batch(batch)
                     output = m(batch)
                     loss = criterion(output, labels)

@@ -5,18 +5,55 @@ from torch.utils.data import DataLoader
 import traceback
 import sounddevice as sd
 import torch
+from torchvision.transforms import Normalize
+import torch.nn as nn
 
+class MinMaxNormalization(nn.Module):
 
-def get_dataloader(dataset_path, batch_size, melspect_params, transform, shuffle=True):
+    def __init__(self, org_min, org_max, new_min=0, new_max=1):
+        super(MinMaxNormalization, self).__init__()
+
+        self.org_min = org_min
+        self.org_max = org_max
+
+        self.new_min = new_min
+        self.new_max = new_max
+
+    def forward(self, x):
+
+        x = ((x - self.org_min)/(self.org_max - self.org_min)) * (self.new_max - self.new_min) - self.new_min
+
+        return x
+
+def get_dataloader(dataset_path, batch_size, melspect_params, transform, normalize, shuffle=True, normalizer=None):
     real_folder = os.path.join(dataset_path, "real")
     fake_folder = os.path.join(dataset_path, "fake")
 
-    #! Cuts only first 4 seconds of the recording as of now
-    dataset = FakeAudioDataset(real_folder, fake_folder, transform, **melspect_params)
-    dataloader = DataLoader(
-        dataset, batch_size=batch_size, shuffle=shuffle, num_workers=0
-    )
-    return dataloader
+    if normalizer is None and normalize is not None:
+        #! Cuts only first 4 seconds of the recording as of now
+        dataset = FakeAudioDataset(real_folder, fake_folder, transform, None, **melspect_params)
+        dataloader = DataLoader(
+            dataset, batch_size=batch_size, shuffle=shuffle, num_workers=0
+        )
+        if normalize == 'global_minmax':
+            min_, max_ = get_min_max(dataloader)
+            normalizer = MinMaxNormalization(min_, max_)
+        elif normalize == 'global_std':
+            mean, std = get_mean_std(dataloader)
+            normalizer = Normalize(mean, std)
+    
+        dataset = FakeAudioDataset(real_folder, fake_folder, transform, normalizer, **melspect_params)
+        dataloader = DataLoader(
+            dataset, batch_size=batch_size, shuffle=shuffle, num_workers=0
+        )
+    elif normalize is not None:
+        # if we have normalizer ready for example with values obtained from training dataset
+        dataset = FakeAudioDataset(real_folder, fake_folder, transform, normalizer, **melspect_params)
+        dataloader = DataLoader(
+            dataset, batch_size=batch_size, shuffle=shuffle, num_workers=0
+        )
+    
+    return dataloader, normalizer
 
 
 def get_speakers_dataloader(
@@ -101,6 +138,21 @@ def get_mean_std(dataloader: DataLoader) -> Tuple[torch.Tensor, torch.Tensor]:
 
     return mean, std
 
+def get_min_max(dataloader: DataLoader) -> Tuple[torch.Tensor, torch.Tensor]:
+    min_val = torch.inf
+    max_val = -torch.inf
+
+    for batch, _ in dataloader:
+        b_max = torch.max(batch)
+        b_min = torch.min(batch)
+
+        if b_max > max_val:
+            max_val = b_max
+        if b_min < min_val:
+            min_val = b_min
+    
+    return min_val, max_val
+
 
 def get_librispeech_names(file_path: str) -> Dict[int, str]:
     """
@@ -127,3 +179,4 @@ def get_librispeech_names(file_path: str) -> Dict[int, str]:
             speaker_names[speaker_id] = name
 
     return speaker_names
+

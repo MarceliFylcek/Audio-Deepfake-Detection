@@ -13,6 +13,7 @@ class FakeAudioDataset(Dataset):
         real_folder: str,
         fake_folder: str,
         transform,
+        normalize,
         time_milliseconds: int,
         new_sample_rate,
         n_bins,
@@ -33,6 +34,7 @@ class FakeAudioDataset(Dataset):
         self.n_bins = n_bins
         self.db_amplitude = db_amplitude
         self.transform = transform
+        self.normalize = normalize
 
         # Path and label
         real_paths = [
@@ -64,11 +66,14 @@ class FakeAudioDataset(Dataset):
             self.time_milliseconds,
             self.db_amplitude,
         )
-
-        raw_data = transform.get_raw_data()
-
-        # Add 1 for channels
-        raw_data = raw_data.unsqueeze(dim=0)
+        if self.normalize is not None:
+            # normalization requires data to be of shape (..., C, H, W)
+            raw_data = self.normalize(transform.get_raw_data().reshape((1, 1)+transform.get_raw_data().shape))
+            raw_data = raw_data.squeeze(dim=0)
+        else:
+            raw_data = transform.get_raw_data()
+            # Add 1 for channels
+            raw_data = raw_data.unsqueeze(dim=0)
 
         return raw_data, label
 
