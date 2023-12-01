@@ -28,8 +28,8 @@ DATESETS = [[TRAIN_DIR_11LABS, VALID_DIR_11LABS],
            [TRAIN_DIR_COREJ, VALID_DIR_COREJ],
            [TRAIN_DIR_COREJ, VALID_DIR_11LABS],
            [TRAIN_DIR_MIXED, VALID_DIR_MIXED]]
-TRAIN_OPTIONS = [CQT, Mel_Spectrogram, MFCC, Spectrogram, CQT]
-TRAIN_OPTIONS_LABELS = ["CQT", "Mel_Spectrogram", "MFCC", "Spectrogram", "CQT"]
+TRAIN_OPTIONS = [Mel_Spectrogram, MFCC, Spectrogram, CQT]
+TRAIN_OPTIONS_LABELS = ["Mel_Spectrogram", "MFCC", "Spectrogram", "CQT"]
 AUGMENTATIONS = [True, False]
 
 if __name__ == "__main__":
@@ -213,4 +213,4 @@ if __name__ == "__main__":
 
                     main_progress_bar.close()    
 
-                wandb.finish()
+                    wandb.finish()
