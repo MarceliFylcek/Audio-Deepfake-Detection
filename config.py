@@ -8,7 +8,7 @@ VALID_DIR = "elevenlabs/valid"
 # Set Mel Spectrogram parameters
 melspectogram_params = {
     'new_sample_rate': 16_000,
-    'n_mels': 128,
+    'n_bins': 128,
     'time_milliseconds': 4_000,
     'db_amplitude': True
 }
