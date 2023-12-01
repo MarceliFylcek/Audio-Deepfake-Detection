@@ -21,6 +21,14 @@ from utils import get_dataloader, normalize_batch
 from augmentation import room_reverb, add_noise
 import random
 
+def apply_augmentation(dataset, audio_sample_rate, augmentation_type='room_reverb'):
+    for index in range(len(dataset)):
+        random_number = random.randrange(5)  # Adjust the range according to your needs
+        if random_number == 0 and augmentation_type == 'room_reverb':
+            dataset[index] = room_reverb(dataset[index], audio_sample_rate)
+        elif random_number == 1 and augmentation_type == 'add_noise':
+            dataset[index] = add_noise(dataset[index], audio_sample_rate)
+
 
 ### OPCJE ###
 ARCHITECTURES = ["CNN", "CNN+LSTM", "Transformer"]
@@ -30,8 +38,8 @@ DATESETS = [[TRAIN_DIR_11LABS, VALID_DIR_11LABS],
            [TRAIN_DIR_COREJ, VALID_DIR_11LABS],
            [TRAIN_DIR_MIXED, VALID_DIR_MIXED]]
 TRAIN_OPTIONS = [Mel_Spectrogram, MFCC, Spectrogram, CQT]
-TRAIN_OPTIONS_LABElS = ["Mel_Spectrogram", "MFCC", "Spectrogram", "CQT"]
-AUGMENTATIONS = [False, True]
+TRAIN_OPTIONS_LABELS = ["Mel_Spectrogram", "MFCC", "Spectrogram", "CQT"]
+AUGMENTATIONS = [True, False]
 
 if __name__ == "__main__":
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:128"
@@ -63,7 +71,7 @@ if __name__ == "__main__":
                                 "dataset": f"{dataset[0]}_{dataset[1]}",
                                 "epochs": n_epochs,
                             },
-                            name=f"{architecture}_{dataset[0].replace('/', '_')}_{dataset[1].replace('/', '_')}_{TRAIN_OPTIONS_LABElS[train_index]}_{augmentation}"
+                            name=f"{architecture}_{dataset[0].replace('/', '_')}_{dataset[1].replace('/', '_')}_{TRAIN_OPTIONS_LABELS[train_index]}_augmentation={augmentation}"
                         )
 
                     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -82,20 +90,15 @@ if __name__ == "__main__":
                     )
 
 
-                    ### AUGMENTATIONS ###
-                    if augmentation:
-                        for index in range(len(train_dataloader.dataset)):
-                            random_number = random.randrange(5)
-                            if random_number == 0:
-                                train_dataloader.dataset[index] = room_reverb(speech=train_dataloader.dataset[index], audio_sample_rate=16_000)
-                            elif random_number == 1:
-                                train_dataloader.dataset[index] = add_noise(speech=train_dataloader.dataset[index], audio_sample_rate=16_000)
-                        for index in range(valid_dataloader.dataset):
-                            random_number = random.randrange(5)
-                            if random_number == 0:
-                                valid_dataloader.dataset[index] = room_reverb(speech=valid_dataloader.dataset[index], audio_sample_rate=16_000)
-                            elif random_number == 1:
-                                valid_dataloader.dataset[index] = add_noise(speech=valid_dataloader.dataset[index], audio_sample_rate=16_000)
+                    # ### AUGMENTATIONS ###
+                    # if augmentation:
+                    #     # Apply augmentations to the training dataset
+                    #     apply_augmentation(train_dataloader.dataset, audio_sample_rate=16_000, augmentation_type='room_reverb')
+                    #     apply_augmentation(train_dataloader.dataset, audio_sample_rate=16_000, augmentation_type='add_noise')
+
+                    #     # Apply augmentations to the validation dataset
+                    #     apply_augmentation(valid_dataloader.dataset, audio_sample_rate=16_000, augmentation_type='room_reverb')
+                    #     apply_augmentation(valid_dataloader.dataset, audio_sample_rate=16_000, augmentation_type='add_noise')
 
 
                     batch, labels = next(iter(train_dataloader))
@@ -217,7 +220,7 @@ if __name__ == "__main__":
                         if epoch % checkpoint_freq == 0:
                             # try:
                             path = (
-                                os.path.join(MODELS_DIR, f"{architecture}_{dataset[0].replace('/', '_')}_{dataset[1].replace('/', '_')}_{TRAIN_OPTIONS_LABElS[train_index]}_{augmentation}_e" + str(epoch))
+                                os.path.join(MODELS_DIR, f"{architecture}_{dataset[0].replace('/', '_')}_{dataset[1].replace('/', '_')}_{TRAIN_OPTIONS_LABELS[train_index]}_augmentation={augmentation}_e" + str(epoch))
                                 + ".pth"
                             )
                             print(path)
@@ -225,6 +228,6 @@ if __name__ == "__main__":
                             # except Exception as e:
                             #     print(f"Error while saving the model: {str(e)}")
                             #     quit()
-                            print(f"Model {architecture}_{dataset[0].replace('/', '_')}_{dataset[1].replace('/', '_')}_{TRAIN_OPTIONS_LABElS[train_index]}_{augmentation}_e + str(epoch) saved at epoch {epoch}")
+                            print(f"Model {architecture}_{dataset[0].replace('/', '_')}_{dataset[1].replace('/', '_')}_{TRAIN_OPTIONS_LABELS[train_index]}_augmentation={augmentation}_e + str(epoch) saved at epoch {epoch}")
 
                     main_progress_bar.close()    

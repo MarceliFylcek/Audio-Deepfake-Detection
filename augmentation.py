@@ -3,6 +3,7 @@ import sounddevice as sd
 import torch
 import random
 
+
 def get_rir_timestamps(rir_filename):
     """Gets the timestamps of room inpulse response in audio file
 
@@ -16,8 +17,20 @@ def get_rir_timestamps(rir_filename):
     start, end = float('.'.join(split[0:2])), float('.'.join(split[2:]))
     return (start, end)
 
+rir_f = 'augmentation samples/room_impulse_responses/rir__1_98_2_8.flac'
+# audio_f = 'resources/train/real/198-0004.flac'
+noise_f = 'augmentation samples/background_noises/noise.flac'
 
-def room_reverb(speech, rir_raw, audio_sample_rate, rir_sample_rate, rir_timestamps):
+timestamps = get_rir_timestamps(rir_f)
+
+# speech_audio, audio_sample_rate = torchaudio.load(audio_f)
+rir_audio, rir_sample_rate = torchaudio.load(rir_f)
+noise_audio, noise_sample_rate = torchaudio.load(noise_f)
+snr = torch.tensor([10])
+
+
+
+def room_reverb(speech, audio_sample_rate, rir_raw=rir_audio, rir_sample_rate=rir_sample_rate, rir_timestamps=timestamps):
     """Applies room reverbation to audio based on provided room impulse response
 
     Args:
@@ -42,20 +55,8 @@ def room_reverb(speech, rir_raw, audio_sample_rate, rir_sample_rate, rir_timesta
     return augmented
 
 
-def add_noise(speech, noise_raw, audio_sample_rate, noise_sample_rate, snr):
-    """Adds noise based on provided noise audio
-
-    Args:
-        speech (tensor): speech audio
-        noise_raw (tensor): noise audio
-        audio_sample_rate (int): speech audio sample rate
-        noise_sample_rate (int): noise audio sample rate
-        snr (tensor): signal to noise ratio
-
-    Returns:
-        tensor: speech audio with added noise
-    """
-
+def add_noise(speech, audio_sample_rate, noise_raw=noise_audio, noise_sample_rate=noise_sample_rate, snr=snr):
+    
     noise = torchaudio.transforms.Resample(noise_sample_rate, audio_sample_rate)(noise_raw)
     noise = noise[:, : speech.shape[1]]
 
