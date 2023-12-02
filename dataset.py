@@ -13,6 +13,7 @@ class FakeAudioDataset(Dataset):
         real_folder: str,
         fake_folder: str,
         transform,
+        normalize,
         time_milliseconds: int,
         new_sample_rate,
         n_bins,
@@ -33,6 +34,7 @@ class FakeAudioDataset(Dataset):
         self.n_bins = n_bins
         self.db_amplitude = db_amplitude
         self.transform = transform
+        self.normalize = normalize
 
         # Path and label
         real_paths = [
@@ -55,6 +57,61 @@ class FakeAudioDataset(Dataset):
 
     def __getitem__(self, index) -> Tuple[torch.Tensor, int]:
         path = self.filepaths[index][0]
+        label = self.labels[index]
+
+        transform = self.transform(
+            path,
+            self.sampling_rate,
+            self.n_bins,
+            self.time_milliseconds,
+            self.db_amplitude,
+        )
+        if self.normalize is not None:
+            # normalization requires data to be of shape (..., C, H, W)
+            raw_data = self.normalize(transform.get_raw_data().reshape((1, 1)+transform.get_raw_data().shape))
+            raw_data = raw_data.squeeze(dim=0)
+        else:
+            raw_data = transform.get_raw_data()
+            # Add 1 for channels
+            raw_data = raw_data.unsqueeze(dim=0)
+
+        return raw_data, label
+
+
+class SpeechIdentificationDataset(Dataset):
+    def __init__(
+        self,
+        speakers_dir: str,
+        transform,
+        time_milliseconds: int,
+        new_sample_rate,
+        n_bins,
+        db_amplitude,
+    ):
+        """Speech indentification dataset"""
+
+        self.speakers_dir = speakers_dir
+        self.time_milliseconds = time_milliseconds
+        self.sampling_rate = new_sample_rate
+        self.n_bins = n_bins
+        self.db_amplitude = db_amplitude
+        self.transform = transform
+
+        self.file_paths = []
+        self.labels = []
+
+        for speaker_id in os.listdir(self.speakers_dir):
+            for utterance in speaker_id:
+                self.file_paths.extend(
+                    os.path.join(self.speakers_dir, speaker_id, utterance)
+                )
+                self.labels.extend(speaker_id)
+
+    def __len__(self):
+        return len(self.file_paths)
+
+    def __getitem__(self, index):
+        path = self.recording_paths[index]
         label = self.labels[index]
 
         transform = self.transform(

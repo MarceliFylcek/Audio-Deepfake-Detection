@@ -12,7 +12,7 @@ def parse():
     parser.add_argument("--no", default=None, type=str, help="Name of a pretrained model")
     parser.add_argument("--no_valid", action="store_true", help="No validation set")
     parser.add_argument("--disable_wandb", default=False, action="store_true", help="Whether to disable wandb or not")
-    parser.add_argument("--normalization", default=False, action="store_true", help="Whether to normalize input or not")
+    parser.add_argument("--normalization", default="global_std", choices=["none", "batch", "global_minmax", "global_std"], help="Specify type of normalization")
 
     args = parser.parse_args()
     return args
