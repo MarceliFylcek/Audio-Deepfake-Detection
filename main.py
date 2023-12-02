@@ -91,7 +91,7 @@ if __name__ == "__main__":
     # config = Dinov2Config(num_channels=1, patch_size=4, hidden_size=48)
     # m = DinoV2TransformerBasedModel(config, train_dataloader.dataset[0][0].shape[-2:]).to(device)
     # m = get_VIT()
-    # m.to(device)
+    m.to(device)
 
     # Pretrained model loading
     if pretrained_name is not None:
@@ -148,6 +148,8 @@ if __name__ == "__main__":
             #! Batch normalization (no learnable params)
             if normalization == 'batch':
                 batch = normalize_batch(batch)
+            elif normalization == "global_minmax" or "global_std":
+                batch = normalizer(batch)
 
             # Get the output
             output = m(batch)
@@ -203,6 +205,8 @@ if __name__ == "__main__":
                     labels = labels.to(device)
                     if normalization == 'batch':
                         batch = normalize_batch(batch)
+                    elif normalization == "global_minmax" or "global_std":
+                        batch = normalizer(batch)
                     output = m(batch)
                     loss = criterion(output, labels)
                     loss_valid += loss.item() / batch_size
