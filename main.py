@@ -86,10 +86,10 @@ if __name__ == "__main__":
     # Batch is passed to the model
 
     # Create the model
-    m = CNNModel(n_filters=5, input_shape=[batch.shape[2], batch.shape[3]]).to(device)
+    # m = CNNModel(n_filters=5, input_shape=[batch.shape[2], batch.shape[3]]).to(device)
     # m = CNN_LSTM_Model(n_filters=25, input_shape=[batch.shape[2], batch.shape[3]], hidden_size=1024, num_layers=batch.shape[3])
-    # config = Dinov2Config(num_channels=1, patch_size=4, hidden_size=48)
-    # m = DinoV2TransformerBasedModel(config, train_dataloader.dataset[0][0].shape[-2:]).to(device)
+    config = Dinov2Config(num_channels=1, patch_size=4, hidden_size=48)
+    m = DinoV2TransformerBasedModel(config, train_dataloader.dataset[0][0].shape[-2:]).to(device)
     # m = get_VIT()
     m.to(device)
 
@@ -148,7 +148,7 @@ if __name__ == "__main__":
             #! Batch normalization (no learnable params)
             if normalization == 'batch':
                 batch = normalize_batch(batch)
-            elif normalization == "global_minmax" or "global_std":
+            elif normalization == "global_minmax" or normalization == "global_std":
                 batch = normalizer(batch)
 
             # Get the output
@@ -205,7 +205,7 @@ if __name__ == "__main__":
                     labels = labels.to(device)
                     if normalization == 'batch':
                         batch = normalize_batch(batch)
-                    elif normalization == "global_minmax" or "global_std":
+                    elif normalization == "global_minmax" or normalization == "global_std":
                         batch = normalizer(batch)
                     output = m(batch)
                     loss = criterion(output, labels)
