@@ -162,6 +162,3 @@ cython_debug/
 resources/
 wandb
 models
-corentinJ/
-dataset_mixed/
-elevenlabs/

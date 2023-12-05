@@ -15,60 +15,50 @@ def get_rir_timestamps(rir_filename):
     start, end = float('.'.join(split[0:2])), float('.'.join(split[2:]))
     return (start, end)
 
-rir_f = 'augmentation samples/room_impulse_responses/rir__1_98_2_8.flac'
-noise_f = 'augmentation samples/background_noises/noise.flac'
 
-timestamps = get_rir_timestamps(rir_f)
+def room_reverb(speech, rir_raw, audio_sample_rate, rir_sample_rate, rir_timestamps):
+    """Applies room reverbation to audio based on provided room impulse response
 
-rir_audio, rir_sample_rate = torchaudio.load(rir_f)
-noise_audio, noise_sample_rate = torchaudio.load(noise_f)
-snr = torch.tensor([10])
+    Args:
+        speech (tensor): speech audio
+        rir_raw (tensor): room impulse response audio
+        audio_sample_rate (int): speech audio sample rate
+        rir_sample_rate (int): room impulse response sample rate
+        rir_timestamps (tuple): room impulse response timestamps in provided audio
 
-def room_reverb(speech_audio,audio_sample_rate, rir_raw=rir_audio, rir_sample_rate=rir_sample_rate, rir_timestamps=timestamps):
-    
+    Returns:
+        tensor: augmented speech audio
+    """
+
+    # get impulse response from room recording and normalize it
     start, stop = rir_timestamps
     rir = rir_raw[:, int(rir_sample_rate * start) : int(rir_sample_rate * stop)] 
     rir = rir / torch.linalg.vector_norm(rir, ord=2)
 
     rir = torchaudio.transforms.Resample(rir_sample_rate, audio_sample_rate)(rir)
-
-    if rir.shape[0] > speech_audio.shape[0]:
-        rir = rir[:speech_audio.shape[0], :]
-
-    if rir.shape[1] > speech_audio.shape[1]:
-        # Truncate the rir tensor if it's longer than the speech tensor
-        rir = rir[:, :speech_audio.shape[1]]
-    elif rir.shape[1] < speech_audio.shape[1]:
-        # Zero-pad the rir tensor if it's shorter than the speech tensor
-        padding = speech_audio.shape[1] - rir.shape[1]
-        rir = torch.nn.functional.pad(rir, (0, padding))
-
-    augmented = torchaudio.functional.fftconvolve(speech_audio, rir)
-
-    if augmented.shape[1] > speech_audio.shape[1]:
-        augmented = augmented[:, :speech_audio.shape[1]]
+    augmented = torchaudio.functional.fftconvolve(speech, rir)
 
     return augmented
 
 
-def add_noise(speech_audio,audio_sample_rate, noise_raw=noise_audio, noise_sample_rate = noise_sample_rate, snr=snr):
+def add_noise(speech, noise_raw, audio_sample_rate, noise_sample_rate, snr):
+    """Adds noise based on provided noise audio
+
+    Args:
+        speech (tensor): speech audio
+        noise_raw (tensor): noise audio
+        audio_sample_rate (int): speech audio sample rate
+        noise_sample_rate (int): noise audio sample rate
+        snr (tensor): signal to noise ratio
+
+    Returns:
+        tensor: speech audio with added noise
+    """
 
     noise = torchaudio.transforms.Resample(noise_sample_rate, audio_sample_rate)(noise_raw)
-    noise = noise[:, : speech_audio.shape[1]]
+    noise = noise[:, : speech.shape[1]]
 
-    if noise.shape[0] > speech_audio.shape[0]:
-        noise = noise[:speech_audio.shape[0], :]
-
-    # Zero-pad or truncate the noise tensor to match the size of the speech tensor
-    if noise.shape[1] > speech_audio.shape[1]:
-        # Truncate the noise tensor if it's longer than the speech tensor
-        noise = noise[:, :speech_audio.shape[1]]
-    elif noise.shape[1] < speech_audio.shape[1]:
-        # Zero-pad the noise tensor if it's shorter than the speech tensor
-        padding = speech_audio.shape[1] - noise.shape[1]
-        noise = torch.nn.functional.pad(noise, (0, padding))
-
-    noisy_speech = torchaudio.functional.add_noise(speech_audio, noise, snr)
+    noisy_speech = torchaudio.functional.add_noise(speech, noise, snr)
 
     return noisy_speech
 
@@ -76,6 +66,7 @@ def add_noise(speech_audio,audio_sample_rate, noise_raw=noise_audio, noise_sampl
 if __name__ == '__main__':
     from utils import play, change_audio_len, plot_waveform # helper functions for developement
     rir_f = 'augmentation samples/room_impulse_responses/rir__1_98_2_8.flac'
+    audio_f = 'resources/train/real/198-0004.flac'
     noise_f = 'augmentation samples/background_noises/noise.flac'
     
     timestamps = get_rir_timestamps(rir_f)
