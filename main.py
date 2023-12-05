@@ -4,6 +4,7 @@ from transformers import Dinov2Config
 from transforms.mel_spectrogram import Mel_Spectrogram
 from transforms.mfcc import MFCC
 from transforms.spectrogram import Spectrogram
+from transforms.cqt import CQT
 import torch
 import os
 import wandb
@@ -66,15 +67,17 @@ if __name__ == "__main__":
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     # Get training and validation dataloader
-    train_dataloader = get_dataloader(
-        TRAIN_DIR, batch_size, melspect_params=melspectogram_params, transform=Spectrogram
+    train_dataloader, normalizer = get_dataloader(
+        TRAIN_DIR, batch_size, melspect_params=melspectogram_params, transform=Spectrogram, normalize=normalization
     )
-    valid_dataloader = get_dataloader(
+    valid_dataloader, _ = get_dataloader(
         VALID_DIR,
         batch_size,
         shuffle=False,
         melspect_params=melspectogram_params,
-        transform=Spectrogram
+        transform=Spectrogram,
+        normalize=normalization,
+        normalizer=normalizer
     )
 
     # Dataloader returns batch and vector of labels
@@ -88,7 +91,7 @@ if __name__ == "__main__":
     # config = Dinov2Config(num_channels=1, patch_size=4, hidden_size=48)
     # m = DinoV2TransformerBasedModel(config, train_dataloader.dataset[0][0].shape[-2:]).to(device)
     # m = get_VIT()
-    # m.to(device)
+    m.to(device)
 
     # Pretrained model loading
     if pretrained_name is not None:
@@ -143,8 +146,10 @@ if __name__ == "__main__":
             labels = labels.to(device)
 
             #! Batch normalization (no learnable params)
-            if normalization:
+            if normalization == 'batch':
                 batch = normalize_batch(batch)
+            elif normalization == "global_minmax" or "global_std":
+                batch = normalizer(batch)
 
             # Get the output
             output = m(batch)
@@ -198,8 +203,10 @@ if __name__ == "__main__":
                 ):
                     batch = batch.to(device)
                     labels = labels.to(device)
-                    if normalization:
+                    if normalization == 'batch':
                         batch = normalize_batch(batch)
+                    elif normalization == "global_minmax" or "global_std":
+                        batch = normalizer(batch)
                     output = m(batch)
                     loss = criterion(output, labels)
                     loss_valid += loss.item() / batch_size

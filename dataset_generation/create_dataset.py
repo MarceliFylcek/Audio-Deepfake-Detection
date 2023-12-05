@@ -111,7 +111,7 @@ def copy_files_to_destination_11labs(destination_real, destination_fake, voices_
             processed_files += 1
 
 
-def create_11labs_dataset(real_root, fake_root, dst_root="./elevenlabs", test_train_ratio=0.8):
+def create_11labs_dataset(real_root, fake_root, dst_root="./elevenlabs", test_train_ratio=0.8, fake_src_format="flac"):
     # 1. Creating folders
     destination_train_real = os.path.join(dst_root, "train", "real")
     destination_train_fake = os.path.join(dst_root, "train", "fake")
@@ -139,7 +139,7 @@ def create_11labs_dataset(real_root, fake_root, dst_root="./elevenlabs", test_tr
             path_to_subfolder = os.path.join(path_to_folder, subfolder)
             if not os.path.isdir(path_to_subfolder):
                 continue
-            fake_filenames = list(filter(lambda x: x.endswith(".mp3"), os.listdir(path_to_subfolder)))
+            fake_filenames = list(filter(lambda x: x.endswith(f".{fake_src_format}"), os.listdir(path_to_subfolder)))
             for filename in fake_filenames:
                 re_match = re.match(re_pattern, filename)
                 if not re_match:
@@ -148,7 +148,7 @@ def create_11labs_dataset(real_root, fake_root, dst_root="./elevenlabs", test_tr
                 voice = re_match.group(2)
                 line = re_match.group(3)
                 src_path_to_fake_file = os.path.join(path_to_subfolder, filename)
-                src_path_to_real_file = os.path.join(real_root, folder, subfolder, filename[:-16] + ".flac")
+                src_path_to_real_file = os.path.join(real_root, folder, subfolder, filename[:-17] + ".flac")
                 if voice not in voices.keys():
                     voices[voice] = {line: (src_path_to_real_file, src_path_to_fake_file)}
                 else:
@@ -191,7 +191,7 @@ if __name__ == "__main__":
     create_jcorentin_dataset(root_real, root_fake)
 
     """
-    1. Download 11labs deepfake dataset from https://projektbadawczystorage.blob.core.windows.net/deepfake-audio-dataset/ready-dataset-packages/deepfakes_11labs.zip
+    1. Download 11labs deepfake dataset from https://projektbadawczystorage.blob.core.windows.net/deepfake-audio-dataset/ready-dataset-packages/deepfakesFLAC.zip
     2. Download real voices from (test-clean.tar.gz [346M]) https://www.openslr.org/12 
     3. Set root_real and root_fake to correct folders
     4. Run the script (It can take a while)
