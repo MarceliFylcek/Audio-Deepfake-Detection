@@ -68,14 +68,14 @@ def train(architecture, dataset, transformer, augmentation, transformer_name):
 
         # Get training and validation dataloader
         train_dataloader, normalizer = get_dataloader(
-            TRAIN_DIR, batch_size, melspect_params=melspectogram_params, transform=transformer, normalize=normalization, augmentation=augmentation
+            dataset[0], batch_size, melspect_params=melspectogram_params, transform=transformer, normalize=normalization, augmentations=augmentation
         )
         valid_dataloader, _ = get_dataloader(
-            VALID_DIR,
+            dataset[1],
             batch_size,
             shuffle=False,
             melspect_params=melspectogram_params,
-            transform=Spectrogram,
+            transform=transformer,
             normalize=normalization,
             normalizer=normalizer
         )

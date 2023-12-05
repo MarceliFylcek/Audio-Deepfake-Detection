@@ -190,9 +190,9 @@ if __name__ == "__main__":
     # root_fake = r"C:\Code\Real-Time-Voice-Cloning\datasets\LibriSpeechDeepfake"
     # create_jcorentin_dataset(root_real, root_fake, dst_root="../resources")
 
-    root_real = r"C:\Users\kubas\Desktop\DATASETY\train-clean-100\LibriSpeech\train-clean-100"
-    root_fake = r"C:\Users\kubas\Desktop\DATASETY\LibriSpeechDeepfake\LibriSpeechDeepfake"
-    create_jcorentin_dataset(root_real, root_fake)
+    # root_real = r"C:\Users\kubas\Desktop\DATASETY\train-clean-100\LibriSpeech\train-clean-100"
+    # root_fake = r"C:\Users\kubas\Desktop\DATASETY\LibriSpeechDeepfake\LibriSpeechDeepfake"
+    # create_jcorentin_dataset(root_real, root_fake)
 
     """
     1. Download 11labs deepfake dataset from https://projektbadawczystorage.blob.core.windows.net/deepfake-audio-dataset/ready-dataset-packages/deepfakesFLAC.zip
@@ -204,18 +204,18 @@ if __name__ == "__main__":
     # root_fake = r"C:\Users\CamaroTheBOSS\OneDrive\Desktop\deepfakesFLAC"
     # create_11labs_dataset(root_real, root_fake, dst_root="../elevenlabs", fake_src_format="flac")
 
-    root_real = r"C:\Users\kubas\Desktop\DATASETY\LibriSpeech\dev-clean"
-    root_fake = r"C:\Users\kubas\Desktop\DATASETY\deepfakes_11labs\deepfakes_11labs"
-    create_11labs_dataset(root_real, root_fake)
+    # root_real = r"C:\Users\kubas\Desktop\DATASETY\LibriSpeech\dev-clean"
+    # root_fake = r"C:\Users\kubas\Desktop\DATASETY\deepfakesFLAC\deepfakesFLAC"
+    # create_11labs_dataset(root_real, root_fake, dst_root="./elevenlabs", fake_src_format="flac")
 
-    ### MIXED DATASET CREATION ###
-    copy_files(r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\elevenlabs\train\fake", r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\dataset_mixed\train\fake"  )
-    copy_files(r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\elevenlabs\train\real", r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\dataset_mixed\train\real"  )
-    copy_files(r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\elevenlabs\valid\fake", r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\dataset_mixed\valid\fake"  )
-    copy_files(r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\elevenlabs\valid\real", r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\dataset_mixed\valid\real"  )
-    copy_files(r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\corentinJ\train\fake", r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\dataset_mixed\train\fake"  )
-    copy_files(r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\corentinJ\train\real", r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\dataset_mixed\train\real"  )
+    ## MIXED DATASET CREATION ###
+    copy_files(r"C:\Users\kubas\Desktop\PIERDOLNIK\Audio-Deepfake-Detection\elevenlabs\train\fake", r"C:\Users\kubas\Desktop\PIERDOLNIK\Audio-Deepfake-Detection\dataset_mixed\train\fake"  )
+    copy_files(r"C:\Users\kubas\Desktop\PIERDOLNIK\Audio-Deepfake-Detection\elevenlabs\train\real", r"C:\Users\kubas\Desktop\PIERDOLNIK\Audio-Deepfake-Detection\dataset_mixed\train\real"  )
+    copy_files(r"C:\Users\kubas\Desktop\PIERDOLNIK\Audio-Deepfake-Detection\elevenlabs\valid\fake", r"C:\Users\kubas\Desktop\PIERDOLNIK\Audio-Deepfake-Detection\dataset_mixed\valid\fake"  )
+    copy_files(r"C:\Users\kubas\Desktop\PIERDOLNIK\Audio-Deepfake-Detection\elevenlabs\valid\real", r"C:\Users\kubas\Desktop\PIERDOLNIK\Audio-Deepfake-Detection\dataset_mixed\valid\real"  )
+    copy_files(r"C:\Users\kubas\Desktop\PIERDOLNIK\Audio-Deepfake-Detection\corentinJ\train\fake", r"C:\Users\kubas\Desktop\PIERDOLNIK\Audio-Deepfake-Detection\dataset_mixed\train\fake"  )
+    copy_files(r"C:\Users\kubas\Desktop\PIERDOLNIK\Audio-Deepfake-Detection\corentinJ\train\real", r"C:\Users\kubas\Desktop\PIERDOLNIK\Audio-Deepfake-Detection\dataset_mixed\train\real"  )
 
-    copy_files(r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\corentinJ\valid\fake", r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\dataset_mixed\valid\fake"  )
-    copy_files(r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\corentinJ\valid\real", r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\dataset_mixed\valid\real"  )
+    copy_files(r"C:\Users\kubas\Desktop\PIERDOLNIK\Audio-Deepfake-Detection\corentinJ\valid\fake", r"C:\Users\kubas\Desktop\PIERDOLNIK\Audio-Deepfake-Detection\dataset_mixed\valid\fake"  )
+    copy_files(r"C:\Users\kubas\Desktop\PIERDOLNIK\Audio-Deepfake-Detection\corentinJ\valid\real", r"C:\Users\kubas\Desktop\PIERDOLNIK\Audio-Deepfake-Detection\dataset_mixed\valid\real"  )
 

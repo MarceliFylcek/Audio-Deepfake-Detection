@@ -27,7 +27,7 @@ DATESETS = [[TRAIN_DIR_11LABS, VALID_DIR_11LABS],
            [TRAIN_DIR_MIXED, VALID_DIR_MIXED]]
 TRAIN_OPTIONS = [Mel_Spectrogram, MFCC, Spectrogram, CQT]
 TRAIN_OPTIONS_LABELS = ["Mel_Spectrogram", "MFCC", "Spectrogram", "CQT"]
-AUGMENTATIONS = [True, False]
+AUGMENTATIONS = [False, True]
 
 for architecture in ARCHITECTURES:
         for dataset in DATESETS:
