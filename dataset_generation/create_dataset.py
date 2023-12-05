@@ -81,7 +81,7 @@ def copy_real_deepfake(deepfake_filelist, real_voice_dict, destination_path_fake
         shutil.copyfile(src_deepfake_path, dst_deepfake_path)
 
 
-def create_jcorentin_dataset(real_root, fake_root, dst_root="./resources", test_train_ratio=0.8):
+def create_jcorentin_dataset(real_root, fake_root, dst_root="./corentinJ", test_train_ratio=0.8):
     destination_train_real = os.path.join(dst_root, "train", "real")
     destination_train_fake = os.path.join(dst_root, "train", "fake")
     destination_valid_real = os.path.join(dst_root, "valid", "real")
@@ -164,6 +164,20 @@ def create_11labs_dataset(real_root, fake_root, dst_root="./elevenlabs", test_tr
     copy_files_to_destination_11labs(destination_train_real, destination_train_fake, train_voices, voices)
     copy_files_to_destination_11labs(destination_valid_real, destination_valid_fake, test_voices, voices)
 
+def copy_files(src_dir, dest_dir):
+    if not os.path.exists(src_dir):
+        print(f"Source directory '{src_dir}' does not exist.")
+        return
+
+    if not os.path.exists(dest_dir):
+        os.makedirs(dest_dir)
+
+    files = os.listdir(src_dir)
+    for file_name in files:
+        src_path = os.path.join(src_dir, file_name)
+        dest_path = os.path.join(dest_dir, file_name)
+        shutil.copy2(src_path, dest_path)
+        print(f"File '{file_name}' copied to '{dest_dir}'.")
 
 if __name__ == "__main__":
     """
@@ -172,9 +186,9 @@ if __name__ == "__main__":
     3. Set root_real and root_fake to correct folders
     4. Run the script (It can take a while)
     """
-    # root_real = r"C:\Users\CamaroTheBOSS\Downloads\LibriSpeech\train-clean-100"
-    # root_fake = r"C:\Code\Real-Time-Voice-Cloning\datasets\LibriSpeechDeepfake"
-    # create_jcorentin_dataset(root_real, root_fake, dst_root="../resources")
+    root_real = r"C:\Users\kubas\Desktop\DATASETY\train-clean-100\LibriSpeech\train-clean-100"
+    root_fake = r"C:\Users\kubas\Desktop\DATASETY\LibriSpeechDeepfake\LibriSpeechDeepfake"
+    create_jcorentin_dataset(root_real, root_fake)
 
     """
     1. Download 11labs deepfake dataset from https://projektbadawczystorage.blob.core.windows.net/deepfake-audio-dataset/ready-dataset-packages/deepfakesFLAC.zip
@@ -182,8 +196,19 @@ if __name__ == "__main__":
     3. Set root_real and root_fake to correct folders
     4. Run the script (It can take a while)
     """
-    root_real = r"C:\Code\Real-Time-Voice-Cloning\LibriSpeech\dev-clean"
-    root_fake = r"C:\Users\CamaroTheBOSS\OneDrive\Desktop\deepfakesFLAC"
-    create_11labs_dataset(root_real, root_fake, dst_root="../elevenlabs", fake_src_format="flac")
+    root_real = r"C:\Users\kubas\Desktop\DATASETY\LibriSpeech\dev-clean"
+    root_fake = r"C:\Users\kubas\Desktop\DATASETY\deepfakes_11labs\deepfakes_11labs"
+    create_11labs_dataset(root_real, root_fake)
 
+    ### MIXED DATASET CREATION ###
+    copy_files(r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\elevenlabs\train\fake", r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\dataset_mixed\train\fake"  )
+    copy_files(r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\elevenlabs\train\real", r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\dataset_mixed\train\real"  )
+    copy_files(r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\elevenlabs\valid\fake", r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\dataset_mixed\valid\fake"  )
+    copy_files(r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\elevenlabs\valid\real", r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\dataset_mixed\valid\real"  )
+    copy_files(r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\corentinJ\train\fake", r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\dataset_mixed\train\fake"  )
+    copy_files(r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\corentinJ\train\real", r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\dataset_mixed\train\real"  )
 
+    copy_files(r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\corentinJ\valid\fake", r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\dataset_mixed\valid\fake"  )
+    copy_files(r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\corentinJ\valid\real", r"C:\Users\kubas\Desktop\pytania\Audio-Deepfake-Detection\dataset_mixed\valid\real"  )
+
+    

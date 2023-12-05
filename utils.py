@@ -9,7 +9,7 @@ from torchvision.transforms import Normalize
 import torch.nn as nn
 
 class MinMaxNormalization(nn.Module):
-
+  
     def __init__(self, org_min, org_max, new_min=0, new_max=1):
         super(MinMaxNormalization, self).__init__()
 
