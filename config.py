@@ -5,6 +5,19 @@ TRAIN_DIR = "elevenlabs/train"
 # Validation dataset
 VALID_DIR = "elevenlabs/valid"
 
+# Training dataset (11labs)
+TRAIN_DIR_11LABS = "elevenlabs/train"
+# Validation dataset (11labs)
+VALID_DIR_11LABS = "elevenlabs/valid"
+# Training dataset (dfdc)
+TRAIN_DIR_COREJ = "corentinJ/train"
+# Validation dataset (dfdc)
+VALID_DIR_COREJ = "corentinJ/valid"
+# Validation dataset (11labs + dfdc)
+TRAIN_DIR_MIXED = "dataset_mixed/train"
+# Validation dataset (11labs + dfdc)
+VALID_DIR_MIXED = "dataset_mixed/valid"
+
 # Set Mel Spectrogram parameters
 melspectogram_params = {
     'new_sample_rate': 16_000,

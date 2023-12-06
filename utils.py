@@ -25,13 +25,13 @@ class MinMaxNormalization(nn.Module):
 
         return x
 
-def get_dataloader(dataset_path, batch_size, melspect_params, transform, normalize, shuffle=True, normalizer=None):
+def get_dataloader(dataset_path, batch_size, melspect_params, transform, normalize, shuffle=True, normalizer=None, augmentations=False):
     real_folder = os.path.join(dataset_path, "real")
     fake_folder = os.path.join(dataset_path, "fake")
 
     if normalizer is None and normalize is not None:
         #! Cuts only first 4 seconds of the recording as of now
-        dataset = FakeAudioDataset(real_folder, fake_folder, transform, None, **melspect_params)
+        dataset = FakeAudioDataset(real_folder, fake_folder, transform, None, augmentations=augmentations, **melspect_params)
         dataloader = DataLoader(
             dataset, batch_size=batch_size, shuffle=shuffle, num_workers=0
         )
@@ -42,13 +42,13 @@ def get_dataloader(dataset_path, batch_size, melspect_params, transform, normali
             mean, std = get_mean_std(dataloader)
             normalizer = Normalize(mean, std)
     
-        dataset = FakeAudioDataset(real_folder, fake_folder, transform, normalizer, **melspect_params)
+        dataset = FakeAudioDataset(real_folder, fake_folder, transform, normalizer,augmentations=augmentations , **melspect_params)
         dataloader = DataLoader(
             dataset, batch_size=batch_size, shuffle=shuffle, num_workers=0
         )
     elif normalize is not None:
         # if we have normalizer ready for example with values obtained from training dataset
-        dataset = FakeAudioDataset(real_folder, fake_folder, transform, normalizer, **melspect_params)
+        dataset = FakeAudioDataset(real_folder, fake_folder, transform, normalizer, augmentations=augmentations, **melspect_params)
         dataloader = DataLoader(
             dataset, batch_size=batch_size, shuffle=shuffle, num_workers=0
         )
