@@ -86,7 +86,7 @@ def train(architecture, dataset, transformer, augmentation, transformer_name):
         if architecture == "CNN":
             model = CNNModel(n_filters=5, input_shape=[batch.shape[2], batch.shape[3]])
         elif architecture == "CNN+LSTM":
-            model = CNN_LSTM_Model(n_filters=25, input_shape=[batch.shape[2], batch.shape[3]], hidden_size=1024, num_layers=batch.shape[3])
+            model = CNN_LSTM_Model(n_filters=25, input_shape=[batch.shape[2], batch.shape[3]], hidden_size=1024)
         elif architecture == "Transformer":
             config = Dinov2Config(num_channels=1, patch_size=4, hidden_size=48)
             model = DinoV2TransformerBasedModel(config, train_dataloader.dataset[0][0].shape[-2:])
