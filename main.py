@@ -5,6 +5,7 @@ from transforms.mel_spectrogram import Mel_Spectrogram
 from transforms.mfcc import MFCC
 from transforms.spectrogram import Spectrogram
 from transforms.cqt import CQT
+from transforms.lpc import LPC
 import torch
 import os
 import wandb
@@ -68,14 +69,14 @@ if __name__ == "__main__":
 
     # Get training and validation dataloader
     train_dataloader, normalizer = get_dataloader(
-        TRAIN_DIR, batch_size, melspect_params=melspectogram_params, transform=Spectrogram, normalize=normalization
+        TRAIN_DIR, batch_size, melspect_params=melspectogram_params, transform=LPC, normalize=normalization
     )
     valid_dataloader, _ = get_dataloader(
         VALID_DIR,
         batch_size,
         shuffle=False,
         melspect_params=melspectogram_params,
-        transform=Spectrogram,
+        transform=LPC,
         normalize=normalization,
         normalizer=normalizer
     )
