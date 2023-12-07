@@ -55,7 +55,7 @@ def train(architecture, train_dataset, valid_datasets, transformer, augmentation
         # start a new wandb run to track this script
         if not wandb_disabled:
             wandb.init(
-                project="audio-deepfake-detection",
+                project="audio-deepfake-tests",
                 config={
                     "learning_rate": lr,
                     "architecture": architecture,
