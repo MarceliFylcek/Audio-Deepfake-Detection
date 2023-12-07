@@ -35,7 +35,7 @@ Folder structure:
 ### dataset = [TRAIN_DIR, VALID_DIR]
 ### name = "Mel_Spectrogram", "MFCC", "Spectrogram", "CQT"
 ### transform = Mel_Spectrogram, MFCC, Spectrogram, CQT
-def train(architecture, dataset, transformer, augmentation, transformer_name):
+def train(architecture, train_dataset, valid_datasets, transformer, augmentation, transformer_name):
         os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:128"
         # Parse input arguments
         args = train_options.parse()
@@ -59,26 +59,28 @@ def train(architecture, dataset, transformer, augmentation, transformer_name):
                 config={
                     "learning_rate": lr,
                     "architecture": architecture,
-                    "dataset": f"{dataset[0]}_{dataset[1]}",
+                    "dataset": f"{train_dataset}",
                     "epochs": n_epochs,
                 },
-                name=f"{architecture}_{dataset[0].replace('/', '_')}_{dataset[1].replace('/', '_')}_{transformer_name}_augmentation={augmentation}"
+                name=f"{architecture}_{train_dataset.replace('/', '_')}_{transformer_name}_augmentation={augmentation}"
             )
         device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
         # Get training and validation dataloader
         train_dataloader, normalizer = get_dataloader(
-            dataset[0], batch_size, melspect_params=melspectogram_params, transform=transformer, normalize=normalization, augmentations=augmentation
+            train_dataset, batch_size, melspect_params=melspectogram_params, transform=transformer, normalize=normalization, augmentations=augmentation
         )
-        valid_dataloader, _ = get_dataloader(
-            dataset[1],
-            batch_size,
-            shuffle=False,
-            melspect_params=melspectogram_params,
-            transform=transformer,
-            normalize=normalization,
-            normalizer=normalizer
-        )
+        valid_dataloaders = [
+            get_dataloader(
+                valid_dataset,
+                batch_size,
+                shuffle=False,
+                melspect_params=melspectogram_params,
+                transform=transformer,
+                normalize=normalization,
+                normalizer=normalizer
+            )[0] for valid_dataset in valid_datasets
+        ]
 
         batch, labels = next(iter(train_dataloader))
 
@@ -86,7 +88,7 @@ def train(architecture, dataset, transformer, augmentation, transformer_name):
         if architecture == "CNN":
             model = CNNModel(n_filters=5, input_shape=[batch.shape[2], batch.shape[3]])
         elif architecture == "CNN+LSTM":
-            model = CNN_LSTM_Model(n_filters=25, input_shape=[batch.shape[2], batch.shape[3]], hidden_size=1024)
+            model = CNN_LSTM_Model(n_filters=25, input_shape=[batch.shape[2], batch.shape[3]], hidden_size=512, device=device)
         elif architecture == "Transformer":
             config = Dinov2Config(num_channels=1, patch_size=4, hidden_size=48)
             model = DinoV2TransformerBasedModel(config, train_dataloader.dataset[0][0].shape[-2:])
@@ -153,78 +155,31 @@ def train(architecture, dataset, transformer, augmentation, transformer_name):
             loss_train /= len(train_dataloader)
 
             ### VALIDATION ###
-            if not no_valid:
-                model.eval()
+            reports = []
+            for dataloader in valid_dataloaders:
+                reports.append(validation(no_valid, model, dataloader, epoch, device, normalization, normalizer,
+                                          criterion, batch_size))
 
-                correct_prediction = 0
-                total = 0
-                loss_valid = 0
-
-                all_predicted = []
-                all_labels = []
-
-                valid_epoch_progress = tqdm(
-                    valid_dataloader, f"Epoch {epoch} (Valid)", leave=False
-                )
-
-                # No gradient calculation
-                with torch.no_grad():
-                    # Evaluation loop
-                    for batch_idx, (batch, labels) in enumerate(
-                        valid_epoch_progress
-                    ):
-                        batch = batch.to(device)
-                        labels = labels.to(device)
-                        if normalization == 'batch':
-                            batch = normalize_batch(batch)
-                        elif normalization == "global_minmax" or normalization == "global_std":
-                            batch = normalizer(batch)
-                        output = model(batch)
-                        loss = criterion(output, labels)
-                        loss_valid += loss.item() / batch_size
-                        predicted = torch.argmax(output, axis=1)
-                        all_predicted.extend(predicted.cpu().numpy())
-                        all_labels.extend(labels.cpu().numpy())
-                        total += labels.size(0)
-                        correct_prediction += (predicted == labels).sum().item()
-
-                        # Update description of the sub-progress bar
-                        valid_epoch_progress.set_postfix(
-                            Loss=f"{loss_valid / (batch_idx + 1):.4f}"
-                        )
-
-                loss_valid /= len(valid_dataloader)
-                accuracy = 100 * correct_prediction / total
-                print(f"\nAccuracy: {accuracy}%")
-
-                # Zero division error
-                report = classification_report(
-                    all_predicted, all_labels, output_dict=True, zero_division=0
-                )
-
-                if not wandb_disabled:
+            if not wandb_disabled:
+                for (report, accuracy, loss_valid), dataset in zip(reports, valid_datasets):
                     for class_name in list(report.keys())[:-3]:
                         for metric in list(report[class_name].keys())[:-1]:
-                            wandb.log(
-                                {
-                                    f"{class_name}_{metric}": report[class_name][
-                                        metric
-                                    ]
-                                }
-                            )
-                    wandb.log(
-                        {
-                            "loss_train": loss_train,
-                            "loss_valid": loss_valid,
-                            "accuracy": accuracy,
-                        }
-                    )
+                            wandb.log({
+                                    f"{class_name}_{metric}_{dataset.split('/')[0]}": report[class_name][metric]
+                            })
+                    wandb.log({
+                            f"loss_valid_{dataset.split('/')[0]}": loss_valid,
+                            f"accuracy_{dataset.split('/')[0]}": accuracy
+                    })
+                wandb.log({
+                        "loss_train": loss_train
+                })
 
             ### SAVE MODEL ###
             if epoch % checkpoint_freq == 0:
                 try:
                     path = (
-                        os.path.join(MODELS_DIR, f"{architecture}_{dataset[0].replace('/', '_')}_{dataset[1].replace('/', '_')}_{transformer_name}_augmentation={augmentation}_e" + str(epoch))
+                        os.path.join(MODELS_DIR, f"{architecture}_{train_dataset.replace('/', '_')}_{transformer_name}_augmentation={augmentation}_e" + str(epoch))
                         + ".pth"
                     )
                     print(path)
@@ -232,11 +187,65 @@ def train(architecture, dataset, transformer, augmentation, transformer_name):
                 except Exception as e:
                     print(f"Error while saving the model: {str(e)}")
                     quit()
-                print(f"Model {architecture}_{dataset[0].replace('/', '_')}_{dataset[1].replace('/', '_')}_{transformer_name}_augmentation={augmentation}_e + str(epoch) saved at epoch {epoch}")
+                print(f"Model {architecture}_{train_dataset.replace('/', '_')}_{transformer_name}_augmentation={augmentation}_e + str(epoch) saved at epoch {epoch}")
 
         main_progress_bar.close()    
 
         wandb.finish()
+
+
+def validation(no_valid, model, valid_dataloader, epoch, device, normalization, normalizer, criterion, batch_size):
+    if not no_valid:
+        model.eval()
+
+        correct_prediction = 0
+        total = 0
+        loss_valid = 0
+
+        all_predicted = []
+        all_labels = []
+
+        valid_epoch_progress = tqdm(
+            valid_dataloader, f"Epoch {epoch} (Valid)", leave=False
+        )
+
+        # No gradient calculation
+        with torch.no_grad():
+            # Evaluation loop
+            for batch_idx, (batch, labels) in enumerate(
+                    valid_epoch_progress
+            ):
+                batch = batch.to(device)
+                labels = labels.to(device)
+                if normalization == 'batch':
+                    batch = normalize_batch(batch)
+                elif normalization == "global_minmax" or normalization == "global_std":
+                    batch = normalizer(batch)
+                output = model(batch)
+                loss = criterion(output, labels)
+                loss_valid += loss.item() / batch_size
+                predicted = torch.argmax(output, axis=1)
+                all_predicted.extend(predicted.cpu().numpy())
+                all_labels.extend(labels.cpu().numpy())
+                total += labels.size(0)
+                correct_prediction += (predicted == labels).sum().item()
+
+                # Update description of the sub-progress bar
+                valid_epoch_progress.set_postfix(
+                    Loss=f"{loss_valid / (batch_idx + 1):.4f}"
+                )
+
+        loss_valid /= len(valid_dataloader)
+        accuracy = 100 * correct_prediction / total
+        print(f"\nAccuracy: {accuracy}%")
+
+        # Zero division error
+        report = classification_report(
+            all_predicted, all_labels, output_dict=True, zero_division=0
+        )
+        return report, accuracy, loss_valid
+
+
 
 
 if __name__ == "__main__":
@@ -250,6 +259,6 @@ if __name__ == "__main__":
     transformer_name: Any
         ) -> Any
     '''
-    train("CNN", [TRAIN_DIR_11LABS, VALID_DIR_11LABS], Mel_Spectrogram, False, "Mel_Spectrogram")
+    train("CNN", TRAIN_DIR_11LABS, [VALID_DIR_11LABS, VALID_DIR_COREJ], Mel_Spectrogram, False, "Mel_Spectrogram")
     
 

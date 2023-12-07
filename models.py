@@ -70,11 +70,12 @@ class CNN_LSTM_Model(nn.Module):
 
     """
 
-    def __init__(self, n_filters, input_shape, hidden_size):
+    def __init__(self, n_filters, input_shape, hidden_size, device):
         super(CNN_LSTM_Model, self).__init__()
 
         self.n_filters = n_filters
         self.hidden_size = hidden_size
+        self.device = device
 
         self.conv1 = nn.Conv2d(
             in_channels=1,
@@ -91,14 +92,13 @@ class CNN_LSTM_Model(nn.Module):
 
         self.lstm1 = nn.LSTM(
             # Input_size = rows * hidden_size
-            input_size = n_filters * self.maxp_out[0],
+            input_size=n_filters * self.maxp_out[0],
             hidden_size=hidden_size,
         )
 
         # Input = columns * hidden_size
         self.fc1 = nn.Linear(self.maxp_out[1]* hidden_size, 256)
         self.fc2 = nn.Linear(256, 2)
-        
 
     def forward(self, x):
         x = self.conv1(x)
@@ -109,11 +109,11 @@ class CNN_LSTM_Model(nn.Module):
         x = torch.reshape(x, (x.size(3), x.size(0),  -1))
 
         # Reset hidden states
-        h_0 = Variable(torch.zeros(1, x.size(1), self.hidden_size))
-        c_0 = Variable(torch.zeros(1, x.size(1), self.hidden_size))
+        h_0 = Variable(torch.zeros(1, x.size(1), self.hidden_size).to(self.device))
+        c_0 = Variable(torch.zeros(1, x.size(1), self.hidden_size).to(self.device))
         
         # Output_shape = [sequence_len, batch_size, hidden_size]
-        x, _ = self.lstm1(x, (h_0 ,c_0))
+        x, _ = self.lstm1(x, (h_0, c_0))
         
         # Batch goes back to 1st and flatten
         x = torch.reshape(x, (x.size(1), -1))
