@@ -214,4 +214,83 @@ def adjust_data(batch, device):
     preprocessing.std = preprocessing.std[0]
     return preprocessing(batch).to(device)
 
+
+class ResidualBlock(nn.Module):
+    """
+    x
+    Conv 3x3 [out_channels]
+    Relu
+    Conv 3x3 [out_channels]
+    += x
+    Relu
+    """
+
+    def __init__(self, in_channels, out_channels):
+        super(ResidualBlock, self).__init__()
+
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1)
+        self.relu = nn.ReLU()
+        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=5, stride=1, padding=1)
+        
+        self.skip_connection = nn.Identity()
+
+        # Change number of channels if needed
+        self.skip_connection = nn.Identity()
+        if in_channels != out_channels:
+            self.skip_connection = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1)
+
+    def forward(self, x):
+
+        residual = x
+        out = self.conv1(x)
+        out = self.relu(out)
+        out = self.conv2(out)
+
+        residual = self.skip_connection(residual)
+
+        out += residual
+        out = self.relu(out)
+
+        return out
     
+
+class ResCNN(nn.module):
+    """
+    """
+    def __init__(self):
+        super(ResCNN, self).__init__()
+        self.conv1 = nn.Conv2d(1, 64, kernel_size=5, stride=2, padding=1)
+        self.resblocks1 = self._get_resblocks(3, 64)
+        self.conv2 = nn.Conv2d(64, 128, kernel_size=5, stride=2, padding=1)
+        self.resblock2 = self._get_resblocks(3, 256)
+        self.conv3 = nn.Conv2d(256, 512, kernel_size=5, stride=2, padding=1)
+        self.resblocks3 = self._get_resblocks(3, 512)
+
+        self.relu = nn.ReLU()
+
+    def _get_resblocks(self, n_blocks, channels):
+        """
+        Returns Sequential model made of stacked residual blocks
+        """
+
+        blocks = []
+        for _ in range(n_blocks):
+            blocks.append(ResidualBlock(channels, channels))
+        return nn.Sequential(*blocks)
+
+    def forward(self, x):
+
+        x = self.conv1(x)
+        #! Batc-norm
+        x = self.relu(x)
+        x = self.resblocks1(x)
+        x = self.conv2(x)
+        #! Batc-norm
+        x = self.relu(x)
+        x = self.resblock2(x)
+        x = self.conv3(x)
+        #! Batc-norm
+        x = self.relu(x)
+        x = self.resblocks3(x)
+
+        x = torch.mean(x, dim=1)
