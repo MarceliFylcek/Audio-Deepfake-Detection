@@ -45,14 +45,13 @@ class CNNModel(nn.Module):
 
     def forward(self, x):
         x = self.conv1(x)
-        x = self.relu(x)
         x = self.maxpool(x)
 
         # Flatten
         x = torch.flatten(x, 1)
 
         x = self.fc1(x)
-
+        x = self.relu(x)
         x = self.fc2(x)
 
         # Not needed
