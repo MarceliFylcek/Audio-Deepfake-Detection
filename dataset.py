@@ -5,7 +5,8 @@ import os
 from transforms.mel_spectrogram import Mel_Spectrogram
 from transforms.mfcc import MFCC
 from transforms.spectrogram import Spectrogram
-
+import random
+from augmentation import dataset_room_reverb, dataset_add_noise
 
 class FakeAudioDataset(Dataset):
     def __init__(
@@ -14,6 +15,7 @@ class FakeAudioDataset(Dataset):
         fake_folder: str,
         transform,
         normalize,
+        augmentations: bool,
         time_milliseconds: int,
         new_sample_rate,
         n_bins,
@@ -35,6 +37,7 @@ class FakeAudioDataset(Dataset):
         self.db_amplitude = db_amplitude
         self.transform = transform
         self.normalize = normalize
+        self.augmentations = augmentations
 
         # Path and label
         real_paths = [
@@ -66,6 +69,7 @@ class FakeAudioDataset(Dataset):
             self.time_milliseconds,
             self.db_amplitude,
         )
+        
         if self.normalize is not None:
             # normalization requires data to be of shape (..., C, H, W)
             raw_data = self.normalize(transform.get_raw_data().reshape((1, 1)+transform.get_raw_data().shape))
@@ -73,6 +77,15 @@ class FakeAudioDataset(Dataset):
         else:
             raw_data = transform.get_raw_data()
             # Add 1 for channels
+            raw_data = raw_data.unsqueeze(dim=0)
+        
+        if self.augmentations == True:
+            raw_data = raw_data.squeeze(dim=0)
+            random_number = random.randrange(5)
+            if random_number == 0:
+                raw_data = dataset_room_reverb(raw_data, self.sampling_rate)
+            elif random_number == 1:
+                raw_data = dataset_add_noise(raw_data, self.sampling_rate)
             raw_data = raw_data.unsqueeze(dim=0)
 
         return raw_data, label

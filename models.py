@@ -7,6 +7,7 @@ from torch import Tensor
 from transformers import Dinov2PreTrainedModel, Dinov2Model
 from torchvision.models import vit_b_16
 from torchvision.models import ViT_B_16_Weights
+from torch.autograd import Variable
 
 
 def calc_shape(in_shape, padding, dilation, k_size, stride):
@@ -63,17 +64,18 @@ class CNNModel(nn.Module):
 class CNN_LSTM_Model(nn.Module):
     """CNN with LSTM
 
-    Input shape of LSTM layers: [batch_size, sequence_len, input_size]
+    Input shape of LSTM layers: [sequence_len, batch_size, input_size]
     All intermediate hidden states are passed to linear layers.
-    Input size of dense layers: [num_layers * hidden_size]
+    Input size of dense layers: [batch_size, sequence_len * hidden_size]
 
     """
 
-    def __init__(self, n_filters, input_shape, hidden_size, num_layers):
+    def __init__(self, n_filters, input_shape, hidden_size, device):
         super(CNN_LSTM_Model, self).__init__()
 
         self.n_filters = n_filters
         self.hidden_size = hidden_size
+        self.device = device
 
         self.conv1 = nn.Conv2d(
             in_channels=1,
@@ -89,30 +91,36 @@ class CNN_LSTM_Model(nn.Module):
         self.maxp_out = calc_shape([conv_out[0], conv_out[1]], 0, 1, 2, 1)
 
         self.lstm1 = nn.LSTM(
-            input_size= n_filters * self.maxp_out[0],
+            # Input_size = rows * hidden_size
+            input_size=n_filters * self.maxp_out[0],
             hidden_size=hidden_size,
-            num_layers=self.maxp_out[1],
         )
+
+        # Input = columns * hidden_size
         self.fc1 = nn.Linear(self.maxp_out[1]* hidden_size, 256)
         self.fc2 = nn.Linear(256, 2)
-        self.softmax = nn.Softmax(dim=1)
 
     def forward(self, x):
         x = self.conv1(x)
         x = self.relu(x)
         x = self.maxpool(x)
 
-        # Reshape for LSTM -> [batch, sequence_len, data]
-        x = x.view(x.size(0), x.size(3), -1)
+        # Sequence length 1st, batch 2nd
+        x = torch.reshape(x, (x.size(3), x.size(0),  -1))
 
-        x, _ = self.lstm1(x)
-
-        # Flatten the output for the Linear layer
-        x = x.view(x.size(0), -1)
+        # Reset hidden states
+        h_0 = Variable(torch.zeros(1, x.size(1), self.hidden_size).to(self.device))
+        c_0 = Variable(torch.zeros(1, x.size(1), self.hidden_size).to(self.device))
+        
+        # Output_shape = [sequence_len, batch_size, hidden_size]
+        x, _ = self.lstm1(x, (h_0, c_0))
+        
+        # Batch goes back to 1st and flatten
+        x = torch.reshape(x, (x.size(1), -1))
 
         x = self.fc1(x)
+        x = self.relu(x)
         x = self.fc2(x)
-        x = self.softmax(x)
 
         return x
 
@@ -124,11 +132,6 @@ class DenseClassifier(nn.Module):
         self.Dense_B = nn.Linear(input_size * hidden_size // 8, input_size * hidden_size // 24)
         self.Output_Dense = nn.Linear(input_size * hidden_size // 24, 2)
         self.relu = nn.ReLU()
-
-        # self.Dense_A = nn.Linear(496 * hidden_features, 256 * hidden_features)
-        # self.Dense_B = nn.Linear(256 * hidden_features, 128 * hidden_features)
-        # self.Output_Dense = nn.Linear(128 * hidden_features, 2)
-        # self.relu = nn.ReLU()
 
     def forward(self, patch_embeddings: Tensor):
         x = self.relu(self.Dense_A(patch_embeddings.reshape(patch_embeddings.shape[0], -1)))
