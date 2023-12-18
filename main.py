@@ -5,6 +5,7 @@ from transforms.mel_spectrogram import Mel_Spectrogram
 from transforms.mfcc import MFCC
 from transforms.spectrogram import Spectrogram
 from transforms.cqt import CQT
+from transforms.lpc import LPC
 import torch
 import os
 import wandb
